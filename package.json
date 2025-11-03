@@ -1,0 +1,18 @@
+{
+  "name": "momentum-swelab",
+  "version": "1.0.0",
+  "description": "Hardware Management System with Flask and React",
+  "main": "server/app.py",
+  "scripts": {
+    "start": "cd server && python app.py",
+    "build": "cd client && npm install && npm run build",
+    "heroku-postbuild": "cd client && npm install && npm run build"
+  },
+  "engines": {
+    "node": "18.x",
+    "npm": "9.x"
+  },
+  "keywords": ["flask", "react", "mongodb", "hardware-management"],
+  "author": "",
+  "license": "CC0-1.0"
+}

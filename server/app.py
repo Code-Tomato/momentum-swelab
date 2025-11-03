@@ -1,6 +1,7 @@
 # Import necessary libraries and modules
+import os
 from bson.objectid import ObjectId
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from pymongo import MongoClient
 
@@ -10,8 +11,8 @@ import projectsDatabase
 import hardwareDatabase
 
 # Define the MongoDB connection string
-# MongoDB is running locally on default port 27017
-MONGODB_SERVER = "mongodb://localhost:27017/"
+# Use environment variable for production (Heroku) or fallback to local
+MONGODB_SERVER = os.environ.get('MONGODB_URI', 'mongodb://localhost:27017/')
 
 # Test MongoDB connection function
 def test_mongodb_connection():
@@ -25,8 +26,17 @@ def test_mongodb_connection():
         return False
 
 # Initialize a new Flask web application
-app = Flask(__name__)
+app = Flask(__name__, static_folder='../client/build', static_url_path='/')
 CORS(app)  # Enable CORS for all routes
+
+# Serve React App
+@app.route('/')
+def serve():
+    return send_from_directory(app.static_folder, 'index.html')
+
+@app.errorhandler(404)
+def not_found(e):
+    return send_from_directory(app.static_folder, 'index.html')
 
 # Health check route
 @app.route('/health', methods=['GET'])
@@ -320,5 +330,6 @@ def check_inventory():
 
 # Main entry point for the application
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=False, host='0.0.0.0', port=port)
 
