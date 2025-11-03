@@ -17,12 +17,14 @@ MONGODB_SERVER = os.environ.get('MONGODB_URI', 'mongodb://localhost:27017/')
 # Test MongoDB connection function
 def test_mongodb_connection():
     try:
-        client = MongoClient(MONGODB_SERVER, serverSelectionTimeoutMS=2000)
+        # Increase timeout for cloud connections
+        client = MongoClient(MONGODB_SERVER, serverSelectionTimeoutMS=10000)
         # Force connection attempt
         client.server_info()
         client.close()
         return True
-    except Exception:
+    except Exception as e:
+        print(f"MongoDB connection error: {str(e)}")
         return False
 
 # Initialize a new Flask web application
