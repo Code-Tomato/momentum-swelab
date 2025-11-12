@@ -1,0 +1,66 @@
+{
+  "users": [
+    {
+      "username": "hi",
+      "userId": "hi",
+      "password": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+      "projects": [
+        "1"
+      ]
+    },
+    {
+      "username": "bye",
+      "userId": "bye",
+      "password": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4",
+      "projects": []
+    },
+    {
+      "username": "Nathan",
+      "userId": "nathan",
+      "password": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4",
+      "projects": []
+    },
+    {
+      "username": "NathanL",
+      "userId": "NathanL",
+      "password": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4",
+      "projects": [
+        "2"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "projectName": "project 1",
+      "projectId": "1",
+      "description": "Project 1",
+      "hwSets": {
+        "HWSet1": 90
+      },
+      "users": [
+        "hi"
+      ]
+    },
+    {
+      "projectName": "project1",
+      "projectId": "2",
+      "description": "hi",
+      "hwSets": {},
+      "users": [
+        "NathanL"
+      ]
+    }
+  ],
+  "hardware": [
+    {
+      "hwName": "HWSet1",
+      "capacity": 100,
+      "availability": 10
+    },
+    {
+      "hwName": "HWSet2",
+      "capacity": 100,
+      "availability": 100
+    }
+  ]
+}

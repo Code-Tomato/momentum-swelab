@@ -5,8 +5,7 @@
   "main": "server/app.py",
   "scripts": {
     "start": "cd server && python app.py",
-    "build": "cd client && npm install && npm run build",
-    "heroku-postbuild": "cd client && npm install && npm run build"
+    "build": "cd client && npm install && npm run build"
   },
   "engines": {
     "node": "18.x",

@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: momentum-swelab-backend
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --chdir server app:app
+    envVars:
+      - key: MONGODB_URI
+        sync: false
+      - key: PORT
+        fromService:
+          type: web
+          name: momentum-swelab-backend
+          property: port
+      - key: PYTHON_VERSION
+        value: 3.11.0
+

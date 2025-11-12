@@ -80,4 +80,84 @@ This file contains functions for managing users in the database.
 
 ## Client side
 
-1. Design choices are up to you, but an example directory structure has been provided. 
+1. Design choices are up to you, but an example directory structure has been provided.
+
+## Deployment
+
+This project is configured to deploy the React frontend to GitHub Pages and the Flask backend to Render.
+
+### Prerequisites
+
+1. **GitHub Repository**: Your code should be pushed to a GitHub repository
+2. **Render Account**: Sign up at [render.com](https://render.com)
+3. **MongoDB**: You'll need a MongoDB connection string (MongoDB Atlas or local)
+
+### Setup Instructions
+
+#### 1. Configure GitHub Pages
+
+1. Update the `homepage` field in `client/package.json` with your GitHub Pages URL:
+   ```json
+   "homepage": "https://YOUR_USERNAME.github.io/momentum-swelab"
+   ```
+
+2. Enable GitHub Pages in your repository settings:
+   - Go to Settings → Pages
+   - Source: GitHub Actions
+   - The workflow will automatically deploy on push to `main`
+
+#### 2. Setup Render Backend
+
+1. Create a new account at [render.com](https://render.com) and connect your GitHub repository
+
+2. Create a new Web Service:
+   - Click "New +" → "Web Service"
+   - Connect your GitHub repository
+   - Render will detect the `render.yaml` file automatically
+   - Or manually configure:
+     - **Name**: `momentum-swelab-backend`
+     - **Environment**: `Python 3`
+     - **Build Command**: `pip install -r requirements.txt`
+     - **Start Command**: `gunicorn --chdir server app:app`
+
+3. Set Environment Variables in Render Dashboard:
+   - `MONGODB_URI`: Your MongoDB connection string
+   - `PORT`: Automatically set by Render (don't override)
+
+4. After deployment, note your Render service URL (e.g., `https://momentum-swelab-backend.onrender.com`)
+
+#### 3. Configure GitHub Actions
+
+1. Add GitHub Secrets (Settings → Secrets and variables → Actions):
+   - `REACT_APP_API_URL`: Your Render backend URL (e.g., `https://momentum-swelab-backend.onrender.com`)
+   - (Optional) `RENDER_API_KEY`: Your Render API key for automated deployments
+   - (Optional) `RENDER_SERVICE_ID`: Your Render service ID
+
+2. The GitHub Actions workflow will:
+   - Build and deploy the React app to GitHub Pages on every push to `main`
+   - Optionally trigger Render deployment (or Render will auto-deploy via webhook)
+
+#### 4. Update CORS (if needed)
+
+Once you have your GitHub Pages URL, update the CORS configuration in `server/app.py` to restrict origins for better security.
+
+### Local Development
+
+1. **Backend**: 
+   ```bash
+   cd server
+   python app.py
+   ```
+   Runs on `http://localhost:5000`
+
+2. **Frontend**:
+   ```bash
+   cd client
+   npm install
+   npm start
+   ```
+   Runs on `http://localhost:3000`
+
+3. **Environment Variables**:
+   - Backend: Set `MONGODB_URI` and `PORT` in your environment
+   - Frontend: Create `client/.env` with `REACT_APP_API_URL=http://localhost:5000` 
