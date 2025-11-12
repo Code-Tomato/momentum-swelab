@@ -1,5 +1,6 @@
 # Import necessary libraries and modules
 from pymongo import MongoClient
+import db_utils
 
 # Note: Import hardwareDatabase when needed to avoid circular imports
 
@@ -17,7 +18,7 @@ Project = {
 # Function to query a project by its ID
 def queryProject(client, projectId):
     # Query and return a project from the database
-    db = client['momentum_swelab']
+    db = db_utils.get_database(client)
     projects_collection = db['projects']
     
     project = projects_collection.find_one({'projectId': projectId})
@@ -31,7 +32,7 @@ def queryProject(client, projectId):
 # Function to create a new project
 def createProject(client, projectName, projectId, description):
     # Create a new project in the database
-    db = client['momentum_swelab']
+    db = db_utils.get_database(client)
     projects_collection = db['projects']
     
     # Check if project already exists
@@ -54,7 +55,7 @@ def createProject(client, projectName, projectId, description):
 # Function to add a user to a project
 def addUser(client, projectId, userId):
     # Add a user to the specified project
-    db = client['momentum_swelab']
+    db = db_utils.get_database(client)
     projects_collection = db['projects']
     
     # Check if project exists
@@ -80,7 +81,7 @@ def addUser(client, projectId, userId):
 # Function to update hardware usage in a project
 def updateUsage(client, projectId, hwSetName):
     # Update the usage of a hardware set in the specified project
-    db = client['momentum_swelab']
+    db = db_utils.get_database(client)
     projects_collection = db['projects']
     
     # Check if project exists
@@ -106,7 +107,7 @@ def checkOutHW(client, projectId, hwSetName, qty, userId):
     # Check out hardware for the specified project and update availability
     import hardwareDatabase
     
-    db = client['momentum_swelab']
+    db = db_utils.get_database(client)
     projects_collection = db['projects']
     
     # Check if project exists
@@ -144,7 +145,7 @@ def checkInHW(client, projectId, hwSetName, qty, userId):
     # Check in hardware for the specified project and update availability
     import hardwareDatabase
     
-    db = client['momentum_swelab']
+    db = db_utils.get_database(client)
     projects_collection = db['projects']
     
     # Check if project exists

@@ -1,6 +1,7 @@
 # Import necessary libraries and modules
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash, check_password_hash
+import db_utils
 
 # Note: Import projectsDatabase when needed to avoid circular imports
 
@@ -17,7 +18,7 @@ User = {
 # Function to add a new user
 def addUser(client, username, userId, password):
     # Add a new user to the database
-    db = client['momentum_swelab']
+    db = db_utils.get_database(client)
     users_collection = db['users']
     
     # Check if user already exists
@@ -37,17 +38,23 @@ def addUser(client, username, userId, password):
     return {'success': True, 'id': str(result.inserted_id)}
 
 # Helper function to query a user by username and userId
-def __queryUser(client, username, userId):
+def __queryUser(client, username, userId=None):
     # Query and return a user from the database
-    db = client['momentum_swelab']
+    # If userId is not provided, query by username only
+    db = db_utils.get_database(client)
     users_collection = db['users']
     
-    user = users_collection.find_one({'username': username, 'userId': userId})
+    if userId:
+        user = users_collection.find_one({'username': username, 'userId': userId})
+    else:
+        # Query by username only (for login when userId not provided)
+        user = users_collection.find_one({'username': username})
     return user
 
 # Function to log in a user
-def login(client, username, userId, password):
+def login(client, username, userId=None, password=None):
     # Authenticate a user and return login status
+    # userId is optional - if not provided, will query by username only
     user = __queryUser(client, username, userId)
     if not user:
         return {'success': False, 'message': 'User not found'}
@@ -65,7 +72,7 @@ def login(client, username, userId, password):
 # Function to add a user to a project
 def joinProject(client, userId, projectId):
     # Add a user to a specified project
-    db = client['momentum_swelab']
+    db = db_utils.get_database(client)
     users_collection = db['users']
     
     # Check if user exists
@@ -91,7 +98,7 @@ def joinProject(client, userId, projectId):
 # Function to get the list of projects for a user
 def getUserProjectsList(client, userId):
     # Get and return the list of projects a user is part of
-    db = client['momentum_swelab']
+    db = db_utils.get_database(client)
     users_collection = db['users']
     
     user = users_collection.find_one({'userId': userId})
