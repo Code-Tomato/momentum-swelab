@@ -16,7 +16,7 @@ function MyLoginPage() {
     try {
       const response = await axios.post(`${API_BASE_URL}/login`, form);
       if (response.data.success) {
-        sessionStorage.setItem('user', JSON.stringify(response.data.user));
+        sessionStorage.setItem('user', JSON.stringify(response.data.user_data));
         navigate('/portal');
       } else setError(response.data.message || 'Login failed');
     } catch (err) {
