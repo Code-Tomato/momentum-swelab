@@ -11,7 +11,7 @@ import projectsDatabase
 import hardwareDatabase
 
 # Define the MongoDB connection string
-# Use environment variable for production (Heroku) or fallback to local
+# Use environment variable for production (Render) or fallback to local
 MONGODB_SERVER = os.environ.get('MONGODB_URI', 'mongodb://localhost:27017/')
 
 # Test MongoDB connection function
@@ -29,7 +29,21 @@ def test_mongodb_connection():
 
 # Initialize a new Flask web application
 app = Flask(__name__, static_folder='../client/build', static_url_path='/')
-CORS(app)  # Enable CORS for all routes
+
+# Configure CORS to allow GitHub Pages and local development
+# Update this with your actual GitHub Pages URL when known
+allowed_origins = [
+    'http://localhost:3000',
+    'http://localhost:5000',
+    'https://*.github.io',  # GitHub Pages pattern
+]
+
+# Allow all origins in development, restrict in production if needed
+CORS(app, resources={
+    r"/*": {
+        "origins": "*"  # For now, allow all. Update to specific origins for production security
+    }
+})
 
 # Serve React App
 @app.route('/')
