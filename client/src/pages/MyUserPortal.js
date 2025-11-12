@@ -3,7 +3,20 @@ import { useNavigate } from 'react-router-dom';
 
 function MyUserPortal() {
   const navigate = useNavigate();
-  const user = JSON.parse(sessionStorage.getItem('user'));
+
+  // Retrieve user from session storage
+  let user = null;
+  try{
+    user = JSON.parse(sessionStorage.getItem('user'));
+  }catch(e){
+    user = null;
+  }
+
+  // Redirect to login if no user found
+  if(!user){
+    navigate('/login');
+    return null;
+  }
 
   const handleLogout = () => {
     sessionStorage.removeItem('user');
