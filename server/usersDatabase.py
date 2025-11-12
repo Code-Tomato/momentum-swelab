@@ -10,21 +10,33 @@ Structure of User entry:
 User = {
     'username': username,
     'userId': userId,
+    'email': email,
     'password': encrypted_password,  # Password is encrypted using encryptDecrypt module
     'projects': [project1_ID, project2_ID, ...]
 }
 '''
 
 # Function to add a new user
-def addUser(client, username, userId, password):
+def addUser(client, username, userId, email, password):
     # Add a new user to the database
     db = db_utils.get_database(client)
     users_collection = db['users']
     
-    # Check if user already exists
-    existing = users_collection.find_one({'$or': [{'username': username}, {'userId': userId}]})
+    # Check if user already exists (by username, userId, or email)
+    existing = users_collection.find_one({'$or': [
+        {'username': username}, 
+        {'userId': userId},
+        {'email': email}
+    ]})
     if existing:
-        return {'success': False, 'message': 'User already exists'}
+        if existing.get('username') == username:
+            return {'success': False, 'message': 'Username already exists'}
+        elif existing.get('userId') == userId:
+            return {'success': False, 'message': 'User ID already exists'}
+        elif existing.get('email') == email:
+            return {'success': False, 'message': 'Email already exists'}
+        else:
+            return {'success': False, 'message': 'User already exists'}
     
     # Encrypt the password before storing
     try:
@@ -36,6 +48,7 @@ def addUser(client, username, userId, password):
     user = {
         'username': username,
         'userId': userId,
+        'email': email,
         'password': encrypted_password,  # Store encrypted password
         'projects': []
     }
@@ -70,6 +83,7 @@ def login(client, username, userId=None, password=None):
         return {'success': True, 'message': 'Login successful', 'user_data': {
             'username': user['username'],
             'userId': user['userId'],
+            'email': user['email'],
             'projects': user['projects']
         }}
     else:
