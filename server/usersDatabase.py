@@ -1,6 +1,7 @@
 # Import necessary libraries and modules
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash, check_password_hash
+import db_utils
 
 # Note: Import projectsDatabase when needed to avoid circular imports
 
@@ -17,7 +18,7 @@ User = {
 # Function to add a new user
 def addUser(client, username, userId, password):
     # Add a new user to the database
-    db = client['momentum_swelab']
+    db = db_utils.get_database(client)
     users_collection = db['users']
     
     # Check if user already exists
@@ -40,7 +41,7 @@ def addUser(client, username, userId, password):
 def __queryUser(client, username, userId=None):
     # Query and return a user from the database
     # If userId is not provided, query by username only
-    db = client['momentum_swelab']
+    db = db_utils.get_database(client)
     users_collection = db['users']
     
     if userId:
@@ -71,7 +72,7 @@ def login(client, username, userId=None, password=None):
 # Function to add a user to a project
 def joinProject(client, userId, projectId):
     # Add a user to a specified project
-    db = client['momentum_swelab']
+    db = db_utils.get_database(client)
     users_collection = db['users']
     
     # Check if user exists
@@ -97,7 +98,7 @@ def joinProject(client, userId, projectId):
 # Function to get the list of projects for a user
 def getUserProjectsList(client, userId):
     # Get and return the list of projects a user is part of
-    db = client['momentum_swelab']
+    db = db_utils.get_database(client)
     users_collection = db['users']
     
     user = users_collection.find_one({'userId': userId})

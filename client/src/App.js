@@ -8,8 +8,6 @@ import Dashboard from './pages/Dashboard';
 import axios from 'axios';
 import './App.css';
 
-// const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const user = sessionStorage.getItem('user');

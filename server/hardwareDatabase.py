@@ -1,5 +1,6 @@
 # Import necessary libraries and modules
 from pymongo import MongoClient
+import db_utils
 
 '''
 Structure of Hardware Set entry:
@@ -13,7 +14,7 @@ HardwareSet = {
 # Function to create a new hardware set
 def createHardwareSet(client, hwSetName, initCapacity):
     # Create a new hardware set in the database
-    db = client['momentum_swelab']
+    db = db_utils.get_database(client)
     hardware_collection = db['hardware_sets']
     
     # Check if hardware set already exists
@@ -34,7 +35,7 @@ def createHardwareSet(client, hwSetName, initCapacity):
 # Function to query a hardware set by its name
 def queryHardwareSet(client, hwSetName):
     # Query and return a hardware set from the database
-    db = client['momentum_swelab']
+    db = db_utils.get_database(client)
     hardware_collection = db['hardware_sets']
     
     hardware_set = hardware_collection.find_one({'hwName': hwSetName})
@@ -48,7 +49,7 @@ def queryHardwareSet(client, hwSetName):
 # Function to update the availability of a hardware set
 def updateAvailability(client, hwSetName, newAvailability):
     # Update the availability of an existing hardware set
-    db = client['momentum_swelab']
+    db = db_utils.get_database(client)
     hardware_collection = db['hardware_sets']
     
     # Check if hardware set exists
@@ -77,7 +78,7 @@ def updateAvailability(client, hwSetName, newAvailability):
 # Function to request space from a hardware set
 def requestSpace(client, hwSetName, amount):
     # Request a certain amount of hardware and update availability
-    db = client['momentum_swelab']
+    db = db_utils.get_database(client)
     hardware_collection = db['hardware_sets']
     
     # Check if hardware set exists
@@ -108,7 +109,7 @@ def requestSpace(client, hwSetName, amount):
 # Function to get all hardware set names
 def getAllHwNames(client):
     # Get and return a list of all hardware set names
-    db = client['momentum_swelab']
+    db = db_utils.get_database(client)
     hardware_collection = db['hardware_sets']
     
     try:
@@ -118,4 +119,20 @@ def getAllHwNames(client):
         return {'success': True, 'data': names}
     except Exception as e:
         return {'success': False, 'message': f'Error retrieving hardware names: {str(e)}'}
+
+# Function to get all hardware sets with full details
+def getAllHardwareSets(client):
+    # Get and return all hardware sets with full details
+    db = db_utils.get_database(client)
+    hardware_collection = db['hardware_sets']
+    
+    try:
+        hardware_sets = list(hardware_collection.find({}))
+        # Convert ObjectId to string for JSON serialization and rename hwName to hwSetName for consistency
+        for hw in hardware_sets:
+            hw['_id'] = str(hw['_id'])
+            hw['hwSetName'] = hw.get('hwName', '')
+        return {'success': True, 'data': hardware_sets}
+    except Exception as e:
+        return {'success': False, 'message': f'Error retrieving hardware sets: {str(e)}'}
 
