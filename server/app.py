@@ -70,14 +70,19 @@ def login():
     # Extract data from request
     data = request.get_json()
     username = data.get('username')
-    userId = data.get('userId')
+    userId = data.get('userId')  # Optional - for backward compatibility
     password = data.get('password')
+
+    # Validate required fields
+    if not username or not password:
+        return jsonify({'success': False, 'message': 'Username and password are required'})
 
     # Connect to MongoDB
     client = MongoClient(MONGODB_SERVER)
 
     try:
         # Attempt to log in the user using the usersDatabase module
+        # userId is optional - if not provided, will query by username only
         result = usersDatabase.login(client, username, userId, password)
         return jsonify(result)
     except Exception as e:
@@ -134,7 +139,36 @@ def join_project():
         # Close the MongoDB connection
         client.close()
 
-# Route for adding a new user
+# Route for user registration (frontend uses this)
+@app.route('/register', methods=['POST'])
+def register():
+    # Extract data from request
+    data = request.get_json()
+    username = data.get('username')
+    email = data.get('email')
+    password = data.get('password')
+
+    # Validate required fields
+    if not username or not email or not password:
+        return jsonify({'success': False, 'message': 'Username, email, and password are required'})
+
+    # Use email as userId (or you could generate a unique ID)
+    userId = email.split('@')[0]  # Use email prefix as userId, or use email itself
+    
+    # Connect to MongoDB
+    client = MongoClient(MONGODB_SERVER)
+
+    try:
+        # Attempt to add the user using the usersDatabase module
+        result = usersDatabase.addUser(client, username, userId, password)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
+    finally:
+        # Close the MongoDB connection
+        client.close()
+
+# Route for adding a new user (legacy/API endpoint)
 @app.route('/add_user', methods=['POST'])
 def add_user():
     # Extract data from request
