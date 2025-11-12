@@ -1,5 +1,6 @@
 # Import necessary libraries and modules
 from pymongo import MongoClient
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # Note: Import projectsDatabase when needed to avoid circular imports
 
@@ -24,11 +25,11 @@ def addUser(client, username, userId, password):
     if existing:
         return {'success': False, 'message': 'User already exists'}
     
-    # Create new user
+    # Create new user with hashed password
     user = {
         'username': username,
         'userId': userId,
-        'password': password,  # In production, this should be hashed!
+        'password': generate_password_hash(password),  # Hash password for security
         'projects': []
     }
     
@@ -51,7 +52,8 @@ def login(client, username, userId, password):
     if not user:
         return {'success': False, 'message': 'User not found'}
     
-    if user['password'] == password:  # In production, use proper password hashing
+    # Check password using werkzeug's secure password checking
+    if check_password_hash(user['password'], password):
         return {'success': True, 'message': 'Login successful', 'user_data': {
             'username': user['username'],
             'userId': user['userId'],
