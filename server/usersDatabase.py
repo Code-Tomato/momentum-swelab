@@ -1,6 +1,6 @@
 # Import necessary libraries and modules
 from pymongo import MongoClient
-from werkzeug.security import generate_password_hash, check_password_hash
+from decryptEncrypt import encrypt_password, verify_password
 import db_utils
 
 # Note: Import projectsDatabase when needed to avoid circular imports
@@ -10,7 +10,7 @@ Structure of User entry:
 User = {
     'username': username,
     'userId': userId,
-    'password': password,
+    'password': encrypted_password,  # Password is encrypted using encryptDecrypt module
     'projects': [project1_ID, project2_ID, ...]
 }
 '''
@@ -26,11 +26,17 @@ def addUser(client, username, userId, password):
     if existing:
         return {'success': False, 'message': 'User already exists'}
     
-    # Create new user with hashed password
+    # Encrypt the password before storing
+    try:
+        encrypted_password = encrypt_password(password)
+    except (ValueError, TypeError) as e:
+        return {'success': False, 'message': f'Password validation failed: {str(e)}'}
+    
+    # Create new user with encrypted password
     user = {
         'username': username,
         'userId': userId,
-        'password': generate_password_hash(password),  # Hash password for security
+        'password': encrypted_password,  # Store encrypted password
         'projects': []
     }
     
@@ -59,8 +65,8 @@ def login(client, username, userId=None, password=None):
     if not user:
         return {'success': False, 'message': 'User not found'}
     
-    # Check password using werkzeug's secure password checking
-    if check_password_hash(user['password'], password):
+    # Verify password using the encrypted password stored in database
+    if verify_password(password, user['password']):
         return {'success': True, 'message': 'Login successful', 'user_data': {
             'username': user['username'],
             'userId': user['userId'],
