@@ -12,7 +12,15 @@
     "node": "18.x",
     "npm": "9.x"
   },
-  "keywords": ["flask", "react", "mongodb", "hardware-management"],
+  "keywords": [
+    "flask",
+    "react",
+    "mongodb",
+    "hardware-management"
+  ],
   "author": "",
-  "license": "CC0-1.0"
+  "license": "CC0-1.0",
+  "dependencies": {
+    "react-router-dom": "^7.9.5"
+  }
 }
