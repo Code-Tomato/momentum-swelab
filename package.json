@@ -18,8 +18,5 @@
     "hardware-management"
   ],
   "author": "",
-  "license": "CC0-1.0",
-  "dependencies": {
-    "react-router-dom": "^7.9.5"
-  }
+  "license": "CC0-1.0"
 }
