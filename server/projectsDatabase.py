@@ -45,12 +45,12 @@ def createProject(client, projectName, projectId, description):
         'projectName': projectName,
         'projectId': projectId,
         'description': description,
-        'hwSets': {},  # Dictionary to store hardware usage
+        'hwSets': {'HWSet:' : 0, 'HWSet2': 0},  # Dictionary to store hardware usage
         'users': []    # List of user IDs
     }
     
-    result = projects_collection.insert_one(project)
-    return {'success': True, 'id': str(result.inserted_id)}
+    projects_collection.insert_one(project)
+    return {'success': True, 'message': 'Project created', 'project': project}
 
 # Function to add a user to a project
 def addUser(client, projectId, userId):
