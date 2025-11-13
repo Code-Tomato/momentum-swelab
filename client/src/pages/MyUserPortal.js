@@ -124,6 +124,8 @@ function MyUserPortal() {
     });
     const data = await res.json();
     if (data.success) {
+      // Clear selection if leaving selected project
+      setProjects((prev) => prev.filter((p) => p.projectId !== projectId));
       setMessage(`Left project ${projectId}`);
       fetchProjects();
     } else {
@@ -229,30 +231,35 @@ function MyUserPortal() {
         <div className="col-span-1 bg-white p-4 rounded shadow">
           <h2 className="font-semibold mb-2">Projects</h2>
           <div className="space-y-3 max-h-96 overflow-auto">
-            {projects.length === 0 && <div className="text-sm text-gray-500">No projects yet.</div>}
-            {projects.map((p) => (
-              <div
-                key={p.projectId}
-                className={`p-2 border rounded flex justify-between items-center ${selectedProjectId === p.projectId ? 'bg-green-100' : 'cursor-pointer'}`}
-                onClick={() => setSelectedProjectId(p.projectId)}
-              >
-                <div>
-                  <div className="font-medium">
-                    {p.projectName} <small className="text-xs text-gray-500">({p.projectId})</small>
-                  </div>
-                  <div className="text-sm text-gray-600">{p.description}</div>
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleLeaveProject(p.projectId);
-                  }}
-                  className="px-2 py-1 border rounded text-xs bg-red-100 hover:bg-red-200"
-                >
-                  Leave
-                </button>
-              </div>
-            ))}
+            {projects.length === 0 ? (
+              <div className="text-sm text-gray-500">No projects yet.</div>
+                ) : (
+                  projects.map((p) => (
+                    <div
+                      key={p.projectId}
+                      className={`p-2 border rounded flex justify-between items-center ${
+                        selectedProjectId === p.projectId ? 'bg-green-100' : 'hover:bg-gray-50'
+                      }`}
+                      onClick={() => setSelectedProjectId(p.projectId)}
+                    >
+                      <div>
+                        <div className="font-medium">
+                          {p.projectName} <small className="text-xs text-gray-500">({p.projectId})</small>
+                        </div>
+                        <div className="text-sm text-gray-600">{p.description}</div>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleLeaveProject(p.projectId);
+                        }}
+                        className="px-2 py-1 border rounded text-xs bg-red-100 hover:bg-red-200"
+                      >
+                        Leave
+                      </button>
+                    </div>
+                  ))
+                )}
           </div>
         </div>
       </div>
