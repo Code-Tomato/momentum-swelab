@@ -84,6 +84,19 @@ def join_project(client):
             return jsonify(project_result)
     else:
         return jsonify(user_result)
+    
+# remove_user_from_project
+@app.route('/remove_user_from_project', methods=['POST'])
+@db_utils.with_db_connection
+def remove_user_from_project(client):
+    data = request.get_json()
+    userId = data.get('userId')
+    projectId = data.get('projectId')
+    # remove user from both user and project collections
+    usersDatabase.leaveProject(client, userId, projectId)
+    projectsDatabase.removeUser(client, projectId, userId)
+    return jsonify({'success': True, 'message': 'User left project'})
+
 
 # Route for user registration (frontend uses this)
 @app.route('/register', methods=['POST'])

@@ -22,29 +22,40 @@ function MyUserPortal() {
     fetchHardware();
   }, [userId]);
 
+  // Fetch user's projects
   async function fetchProjects() {
-    try {
-      const res = await fetch(`${API_BASE}/get_user_projects_list`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        const projectList = data.projects || data.data || data.user_projects || [];
-        setProjects(projectList);
-      } else {
-        setProjects([]);
-      }
-    } catch (err) {
-      console.error(err);
+  try {
+    const res = await fetch(`${API_BASE}/get_user_projects_list`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    });
+    const data = await res.json();
+    console.log('Projects response:', data);
+    
+    // Populate projects list
+    if (data.success) {
+      const list = (data.projects || data.data || []).map((p) => ({
+        projectId: p.projectId || p.id || p._id || '(no id)',
+        projectName: p.projectName || p.name ||'Unnamed Project',
+        description: p.description || p.desc || '',
+      }));
+      setProjects(list);
+    } else {
+      setProjects([]);
     }
+  } catch (err) {
+    console.error('Error fetching projects:', err);
+    setProjects([]);
   }
+}
+
 
   async function fetchHardware() {
     try {
       const res = await fetch(`${API_BASE}/get_all_hardware`);
       const data = await res.json();
+      
       if (data.success && data.data) {
         const hw = {};
         data.data.forEach((h) => {
@@ -75,8 +86,18 @@ function MyUserPortal() {
       setMessage(`Project ${projectName} created.`);
       fetchProjects();
     } else setMessage(data.message || 'Error creating project');
+    
+    // Auto-join the newly created project
+    await fetch(`${API_BASE}/join_project`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, projectId }),
+    });
+    fetchProjects();
+
   }
 
+  // Join existing project
   async function handleJoinProject(e) {
     e.preventDefault();
     setMessage('');
@@ -92,6 +113,28 @@ function MyUserPortal() {
       fetchProjects();
     } else setMessage(data.message || 'Error joining project');
   }
+
+  // Leave project
+  async function handleLeaveProject(projectId) {
+  try {
+    const res = await fetch(`${API_BASE}/remove_user_from_project`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, projectId }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      setMessage(`Left project ${projectId}`);
+      fetchProjects();
+    } else {
+      setMessage(data.message || 'Error leaving project');
+    }
+  } catch (err) {
+    console.error(err);
+    setMessage('Server error leaving project');
+  }
+}
+
 
   async function handleCheckout(e) {
     e.preventDefault();
@@ -188,9 +231,26 @@ function MyUserPortal() {
           <div className="space-y-3 max-h-96 overflow-auto">
             {projects.length === 0 && <div className="text-sm text-gray-500">No projects yet.</div>}
             {projects.map((p) => (
-              <div key={p.projectId} onClick={() => setSelectedProjectId(p.projectId)} className={`p-2 border rounded cursor-pointer ${selectedProjectId === p.projectId ? 'bg-green-100' : ''}`}>
-                <div className="font-medium">{p.projectName} <small>({p.projectId})</small></div>
-                <div className="text-sm text-gray-600">{p.description}</div>
+              <div
+                key={p.projectId}
+                className={`p-2 border rounded flex justify-between items-center ${selectedProjectId === p.projectId ? 'bg-green-100' : 'cursor-pointer'}`}
+                onClick={() => setSelectedProjectId(p.projectId)}
+              >
+                <div>
+                  <div className="font-medium">
+                    {p.projectName} <small className="text-xs text-gray-500">({p.projectId})</small>
+                  </div>
+                  <div className="text-sm text-gray-600">{p.description}</div>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleLeaveProject(p.projectId);
+                  }}
+                  className="px-2 py-1 border rounded text-xs bg-red-100 hover:bg-red-200"
+                >
+                  Leave
+                </button>
               </div>
             ))}
           </div>
