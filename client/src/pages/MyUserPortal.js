@@ -30,7 +30,12 @@ function MyUserPortal() {
         body: JSON.stringify({ userId }),
       });
       const data = await res.json();
-      if (data.success) setProjects(data.projects || []);
+      if (data.success) {
+        const projectList = data.projects || data.data || data.user_projects || [];
+        setProjects(projectList);
+      } else {
+        setProjects([]);
+      }
     } catch (err) {
       console.error(err);
     }
