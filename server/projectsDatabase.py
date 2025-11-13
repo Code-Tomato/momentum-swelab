@@ -49,8 +49,11 @@ def createProject(client, projectName, projectId, description):
         'users': []    # List of user IDs
     }
     
-    projects_collection.insert_one(project)
-    return {'success': True, 'message': 'Project created', 'project': project}
+    result = projects_collection.insert_one(project)
+    # Retrieve the created project
+    created = projects_collection.find_one({'_id': result.inserted_id})
+    created['_id'] = str(created['_id'])
+    return {'success': True, 'project': created, 'message': 'Project created successfully'}
 
 # Function to add a user to a project
 def addUser(client, projectId, userId):
@@ -77,6 +80,22 @@ def addUser(client, projectId, userId):
         return {'success': True, 'message': 'User added to project successfully'}
     else:
         return {'success': False, 'message': 'Failed to add user to project'}
+
+# remove user from project
+def removeUser(client, projectId, userId):
+    # Remove a user from the specified project
+    db = db_utils.get_database(client)
+    projects_collection = db['projects']
+    
+    result = projects_collection.update_one(
+        {'projectId': projectId},
+        {'$pull': {'users': userId}}
+    )
+    
+    if result.modified_count > 0:
+        return {'success': True, 'message': 'User removed from project successfully'}
+    else:
+        return {'success': False, 'message': 'User not found or not in project'}
 
 # Function to update hardware usage in a project
 def updateUsage(client, projectId, hwSetName):

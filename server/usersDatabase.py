@@ -101,6 +101,24 @@ def joinProject(client, userId, projectId):
     else:
         return {'success': False, 'message': 'Failed to join project'}
 
+
+# function to leave a project 
+def leaveProject(client, userId, projectId):
+    # Remove a project from a user's project list
+    db = db_utils.get_database(client)
+    users_collection = db['users']
+
+    result = users_collection.update_one(
+        {'userId': userId},
+        {'$pull': {'projects': projectId}}
+    )
+
+    if result.modified_count > 0:
+        return {'success': True, 'message': 'Project removed from user list'}
+    else:
+        return {'success': False, 'message': 'User not found or not in project'}
+
+
 # Function to get the list of projects for a user
 def getUserProjectsList(client, userId):
     # Get and return the list of projects a user is part of
