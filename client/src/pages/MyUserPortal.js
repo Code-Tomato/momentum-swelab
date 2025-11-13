@@ -1,26 +1,14 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
 function MyUserPortal() {
   const navigate = useNavigate();
-  const userStr = sessionStorage.getItem('user');
-  const user = userStr ? JSON.parse(userStr) : null;
-
-  // Redirect to login if no user data
-  useEffect(() => {
-    if (!user) {
-      navigate('/login');
-    }
-  }, [user, navigate]);
+  const user = JSON.parse(sessionStorage.getItem('user'));
 
   if (!user) {
+    navigate('/login');
     return null;
   }
-
-  const handleLogout = () => {
-    sessionStorage.removeItem('user');
-    navigate('/login');
-  };
 
   return (
     <div

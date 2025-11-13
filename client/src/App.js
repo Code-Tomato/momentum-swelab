@@ -7,7 +7,7 @@ import ForgotPasswordPage from './pages/ForgotMyPassword';
 import Dashboard from './pages/Dashboard';
 import CreateProjectPage from './pages/CreateProjectPage';
 import JoinProjectPage from './pages/JoinProjectPage';
-import HardwareSet1Page from './pages/HardwareSetPage';
+import HardwareSet1Page from './pages/HardwareSet1Page';
 import axios from 'axios';
 import './App.css';
 
