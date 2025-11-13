@@ -124,10 +124,12 @@ function MyUserPortal() {
     });
     const data = await res.json();
     if (data.success) {
-      // Clear selection if leaving selected project
-      setProjects((prev) => prev.filter((p) => p.projectId !== projectId));
+      if (selectedProjectId === projectId) {
+        setSelectedProjectId(null);
+      }
+      // ensures that when user leaves the project also leaves the page
       setMessage(`Left project ${projectId}`);
-      fetchProjects();
+      await fetchProjects();
     } else {
       setMessage(data.message || 'Error leaving project');
     }
