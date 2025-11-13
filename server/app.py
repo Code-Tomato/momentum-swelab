@@ -44,21 +44,15 @@ def health_check():
 def login(client):
     data = request.get_json()
     username = data.get('username')
-    userId = data.get('userId')
+    userId = data.get('userId')  # Optional - for backward compatibility
     password = data.get('password')
 
-    # Support login with either username or userId
-    if not password:
-        return jsonify({'success': False, 'message': 'Password is required'})
-    
-    if not username and not userId:
-        return jsonify({'success': False, 'message': 'Username or userId is required'})
-    
-    # If only userId provided, use it as username for now
-    login_identifier = username if username else userId
+    # Validate required fields
+    if not username or not password:
+        return jsonify({'success': False, 'message': 'Username and password are required'})
 
     # Attempt to log in the user using the usersDatabase module
-    result = usersDatabase.login(client, login_identifier, userId, password)
+    result = usersDatabase.login(client, username, userId, password)
     return jsonify(result)
 
 # Route for the main page (Work in progress)
@@ -97,20 +91,18 @@ def join_project(client):
 def register(client):
     data = request.get_json()
     username = data.get('username')
-    userId = data.get('userId')
     email = data.get('email')
     password = data.get('password')
-    
+
     # Validate required fields
     if not username or not email or not password:
         return jsonify({'success': False, 'message': 'Username, email, and password are required'})
-    
-    # If no userId provided, generate one from email or username
-    if not userId:
-        userId = email.split('@')[0] if '@' in email else username
+
+    # Use email as userId (or you could generate a unique ID)
+    userId = email.split('@')[0]  # Use email prefix as userId, or use email itself
     
     # Attempt to add the user using the usersDatabase module
-    result = usersDatabase.addUser(client, username, userId, email, password)
+    result = usersDatabase.addUser(client, username, userId, password)
     return jsonify(result)
 
 # Route for adding a new user (legacy/API endpoint)
@@ -120,15 +112,10 @@ def add_user(client):
     data = request.get_json()
     username = data.get('username')
     userId = data.get('userId')
-    email = data.get('email')
     password = data.get('password')
-    
-    # For legacy compatibility, if no email provided, generate from userId or username
-    if not email:
-        email = f"{userId}@example.com" if userId else f"{username}@example.com"
 
     # Attempt to add the user using the usersDatabase module
-    result = usersDatabase.addUser(client, username, userId, email, password)
+    result = usersDatabase.addUser(client, username, userId, password)
     return jsonify(result)
 
 # Route for getting the list of user projects
