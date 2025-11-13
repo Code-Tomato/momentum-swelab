@@ -5,6 +5,10 @@ import MyRegistrationPage from './pages/MyRegistrationPage';
 import MyUserPortal from './pages/MyUserPortal';
 import ForgotPasswordPage from './pages/ForgotMyPassword';
 import Dashboard from './pages/Dashboard';
+import CreateProjectPage from './pages/CreateProjectPage';
+import JoinProjectPage from './pages/JoinProjectPage';
+import HardwareSet1Page from './pages/HardwareSet1Page';
+import HardwareSet2Page from './pages/HardwareSet2Page';
 import axios from 'axios';
 import './App.css';
 
@@ -23,6 +27,7 @@ function App() {
         <Route path="/register" element={<MyRegistrationPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
+        {/* Protected Portal Routes */}
         <Route
           path="/portal"
           element={
@@ -31,6 +36,40 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/portal/create-project"
+          element={
+            <ProtectedRoute>
+              <CreateProjectPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/portal/join-project"
+          element={
+            <ProtectedRoute>
+              <JoinProjectPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/portal/hardware-set1"
+          element={
+            <ProtectedRoute>
+              <HardwareSet1Page />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/portal/hardware-set2"
+          element={
+            <ProtectedRoute>
+              <HardwareSet2Page />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Catch-All Redirect */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </HashRouter>
