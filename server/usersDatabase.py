@@ -177,3 +177,21 @@ def forgotPassword(client, email):
     # 3. Send email with reset link
     # For now, return success message
     return {'success': True, 'message': 'If an account exists with this email, password reset instructions have been sent.'}
+
+def getUserByEmail(client, email):
+    db = client['hardwaredb']
+    users = db['users']
+    return users.find_one({'email': email})
+
+def updatePassword(client, email, new_password):
+    db = client['hardwaredb']
+    users = db['users']
+
+    result = users.update_one(
+        {'email': email},
+        {'$set': {'password': new_password}}
+    )
+
+    if result.modified_count == 1:
+        return {'success': True, 'message': 'Password updated successfully'}
+    return {'success': False, 'message': 'Failed to update password'}
