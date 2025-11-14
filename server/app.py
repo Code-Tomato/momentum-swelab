@@ -72,8 +72,7 @@ def login(client):
     Request Body:
         {
             "username": str (required),
-            "password": str (required),
-            "userId": str (optional, for backward compatibility)
+            "password": str (required)
         }
     
     Returns:
@@ -99,7 +98,6 @@ def login(client):
     """
     data = request.get_json()
     username = data.get('username')
-    userId = data.get('userId')  # Optional - for backward compatibility
     password = data.get('password')
 
     # Validate required fields
@@ -107,7 +105,7 @@ def login(client):
         return jsonify({'success': False, 'message': 'Username and password are required'})
 
     # Attempt to log in the user using the usersDatabase module
-    result = usersDatabase.login(client, username, userId, password)
+    result = usersDatabase.login(client, username, password)
     return jsonify(result)
 
 # Route for the main page (Work in progress)
@@ -214,26 +212,20 @@ def register(client):
     if not username or not email or not password:
         return jsonify({'success': False, 'message': 'Username, email, and password are required'})
 
+    # Basic email format validation
+    if '@' not in email or '.' not in email.split('@')[1]:
+        return jsonify({'success': False, 'message': 'Invalid email format'})
+
+    # Username validation
+    if len(username) < 3:
+        return jsonify({'success': False, 'message': 'Username must be at least 3 characters long'})
+
     # Use email as userId (or you could generate a unique ID)
     userId = email.split('@')[0]  # Use email prefix as userId, or use email itself
     
     # Attempt to add the user using the usersDatabase module
-    result = usersDatabase.addUser(client, username, userId, password)
-    return jsonify(result)
-
-# Route for forgot password
-@app.route('/forgot-password', methods=['POST'])
-@db_utils.with_db_connection
-def forgot_password(client):
-    data = request.get_json()
-    email = data.get('email')
-
-    # Validate required fields
-    if not email:
-        return jsonify({'success': False, 'message': 'Email is required'})
-
-    # Attempt to process forgot password request
-    result = usersDatabase.forgotPassword(client, email)
+    # Database will check for username uniqueness
+    result = usersDatabase.addUser(client, username, email, userId, password)
     return jsonify(result)
 
 # Route for adding a new user (legacy/API endpoint)
@@ -242,11 +234,20 @@ def forgot_password(client):
 def add_user(client):
     data = request.get_json()
     username = data.get('username')
+    email = data.get('email')
     userId = data.get('userId')
     password = data.get('password')
 
+    # Validate required fields
+    if not username or not email or not password:
+        return jsonify({'success': False, 'message': 'Username, email, and password are required'})
+
+    # If userId not provided, derive from email
+    if not userId:
+        userId = email.split('@')[0]
+
     # Attempt to add the user using the usersDatabase module
-    result = usersDatabase.addUser(client, username, userId, password)
+    result = usersDatabase.addUser(client, username, email, userId, password)
     return jsonify(result)
 
 # Route for getting the list of user projects
@@ -524,6 +525,14 @@ def forgot_password(client):
     data = request.get_json()
     email = data.get('email')
 
+    # Validate required fields
+    if not email:
+        return jsonify({'success': False, 'message': 'Email is required'})
+
+    # Basic email format validation
+    if '@' not in email or '.' not in email.split('@')[1]:
+        return jsonify({'success': False, 'message': 'Invalid email format'})
+
     # Check if email exists in DB
     user = usersDatabase.getUserByEmail(client, email)
     if not user:
@@ -547,6 +556,13 @@ def reset_password(client):
     data = request.get_json()
     token = data.get('token')
     new_password = data.get('password')
+
+    # Validate required fields
+    if not token:
+        return jsonify({'success': False, 'message': 'Token is required'})
+    
+    if not new_password:
+        return jsonify({'success': False, 'message': 'Password is required'})
 
     try:
         email = serializer.loads(token, max_age=1800)  # token expires in 30 minutes

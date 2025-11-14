@@ -1,70 +1,44 @@
-# Password encryption utilities using shift cipher approach
-# Based on the cipher.py implementation but adapted for password security
-
-ASCII_START = 34
-ASCII_END = 126
-ALPHABET_LEN = ASCII_END - ASCII_START + 1
-
-# Fixed encryption parameters for consistent password hashing
-PASSWORD_SHIFT_N = 7  # Fixed shift amount
-PASSWORD_SHIFT_D = 1  # Fixed direction (right shift)
+# Password hashing utilities using bcrypt for secure password storage
+import bcrypt
 
 def validate_password_input(inputText: str):
-    """Validate password input for encryption"""
+    """Validate password input"""
     if not isinstance(inputText, str):
         raise TypeError("Password must be a string")
     if len(inputText) == 0:
         raise ValueError("Password cannot be empty")
-    
-    # Check for invalid characters (space and exclamation mark)
-    for ch in inputText:
-        code = ord(ch)
-        if code == 32 or code == 33:
-            raise ValueError("Password cannot contain space or '!' characters")
-        if code < ASCII_START or code > ASCII_END:
-            raise ValueError("Password must use ASCII printable characters 34-126")
-
-def shift_char(ch: str, shift: int) -> str:
-    """Shift a character by the given amount within the valid ASCII range"""
-    idx = ord(ch) - ASCII_START
-    new_idx = (idx + shift) % ALPHABET_LEN
-    return chr(ASCII_START + new_idx)
+    if len(inputText) < 4:
+        raise ValueError("Password must be at least 4 characters long")
 
 def encrypt_password(password: str) -> str:
     """
-    Encrypt a password using the shift cipher approach
-    Returns the encrypted password string
+    Hash a password using bcrypt with automatic salt generation.
+    Each call produces a different hash even for the same password.
+    Returns the hashed password string (includes salt).
     """
     validate_password_input(password)
     
-    # Reverse the password first, then apply shift
-    reversed_password = password[::-1]
-    shift = PASSWORD_SHIFT_N * PASSWORD_SHIFT_D
+    # Generate salt and hash password
+    # bcrypt automatically generates a unique salt for each password
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
     
-    encrypted = ''.join(shift_char(ch, shift) for ch in reversed_password)
-    return encrypted
+    # Return as string (bcrypt hash includes the salt)
+    return hashed.decode('utf-8')
 
-def decrypt_password(encrypted_password: str) -> str:
+def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
-    Decrypt an encrypted password back to original
-    Returns the original password string
-    """
-    # Apply reverse shift first, then reverse the string
-    shift = -PASSWORD_SHIFT_N * PASSWORD_SHIFT_D
-    shifted = ''.join(shift_char(ch, shift) for ch in encrypted_password)
-    return shifted[::-1]
-
-def verify_password(plain_password: str, encrypted_password: str) -> bool:
-    """
-    Verify if a plain password matches an encrypted password
-    Returns True if they match, False otherwise
+    Verify if a plain password matches a bcrypt hashed password.
+    Returns True if they match, False otherwise.
     """
     try:
-        # Encrypt the plain password and compare
-        encrypted_plain = encrypt_password(plain_password)
-        return encrypted_plain == encrypted_password
-    except (TypeError, ValueError):
-        # If password validation fails, return False
+        # bcrypt.checkpw handles the salt automatically
+        return bcrypt.checkpw(
+            plain_password.encode('utf-8'),
+            hashed_password.encode('utf-8')
+        )
+    except (TypeError, ValueError, AttributeError):
+        # If password validation fails or hash is invalid, return False
         return False
 
 # Additional utility functions
@@ -75,7 +49,7 @@ def is_valid_password(password: str) -> bool:
     """
     try:
         validate_password_input(password)
-        return len(password) >= 4  # Minimum length requirement
+        return True
     except (TypeError, ValueError):
         return False
 
@@ -83,4 +57,12 @@ def get_password_requirements() -> str:
     """
     Return a string describing password requirements
     """
-    return "Password must be at least 4 characters long and use ASCII printable characters (34-126), excluding space and '!' characters."
+    return "Password must be at least 4 characters long."
+
+# Legacy function for backward compatibility (deprecated - passwords are now hashed, not encrypted)
+def decrypt_password(encrypted_password: str) -> str:
+    """
+    DEPRECATED: Passwords are now hashed with bcrypt and cannot be decrypted.
+    This function is kept for backward compatibility but will raise an error.
+    """
+    raise NotImplementedError("Password decryption is not supported. Passwords are hashed, not encrypted.")

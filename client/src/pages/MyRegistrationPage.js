@@ -81,10 +81,11 @@ function MyRegistrationPage() {
             <input
               id="reg-username"
               name="username"
-              placeholder="Choose a username"
+              placeholder="Choose a username (min 3 characters)"
               value={form.username}
               onChange={handleChange}
               required
+              minLength={3}
               style={{ ...commonStyles.input, borderColor: errors.username ? '#ff6b6b' : '#333' }}
               onFocus={inputHandlers.onFocus}
               onBlur={(e) => {

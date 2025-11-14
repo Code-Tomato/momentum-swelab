@@ -10,21 +10,32 @@ Structure of User entry:
 User = {
     'username': username,
     'userId': userId,
+    'email': email,
     'password': encrypted_password,  # Password is encrypted using encryptDecrypt module
     'projects': [project1_ID, project2_ID, ...]
 }
 '''
 
 # Function to add a new user
-def addUser(client, username, userId, password):
+def addUser(client, username, email, userId, password):
     # Add a new user to the database
     db = db_utils.get_database(client)
     users_collection = db['users']
     
-    # Check if user already exists
-    existing = users_collection.find_one({'$or': [{'username': username}, {'userId': userId}]})
-    if existing:
-        return {'success': False, 'message': 'User already exists'}
+    # Check if username already exists
+    existing_username = users_collection.find_one({'username': username})
+    if existing_username:
+        return {'success': False, 'message': 'Username already exists'}
+    
+    # Check if email already exists
+    existing_email = users_collection.find_one({'email': email})
+    if existing_email:
+        return {'success': False, 'message': 'Email already registered'}
+    
+    # Check if userId already exists
+    existing_userId = users_collection.find_one({'userId': userId})
+    if existing_userId:
+        return {'success': False, 'message': 'User ID already exists'}
     
     # Encrypt the password before storing
     try:
@@ -36,6 +47,7 @@ def addUser(client, username, userId, password):
     user = {
         'username': username,
         'userId': userId,
+        'email': email,
         'password': encrypted_password,  # Store encrypted password
         'projects': []
     }
@@ -43,25 +55,19 @@ def addUser(client, username, userId, password):
     result = users_collection.insert_one(user)
     return {'success': True, 'id': str(result.inserted_id)}
 
-# Helper function to query a user by username and userId
-def __queryUser(client, username, userId=None):
-    # Query and return a user from the database
-    # If userId is not provided, query by username only
+# Helper function to query a user by username
+def __queryUserByUsername(client, username):
+    # Query and return a user from the database by username
     db = db_utils.get_database(client)
     users_collection = db['users']
-    
-    if userId:
-        user = users_collection.find_one({'username': username, 'userId': userId})
-    else:
-        # Query by username only (for login when userId not provided)
-        user = users_collection.find_one({'username': username})
+    # Query by username
+    user = users_collection.find_one({'username': username})
     return user
 
 # Function to log in a user
-def login(client, username, userId=None, password=None):
-    # Authenticate a user and return login status
-    # userId is optional - if not provided, will query by username only
-    user = __queryUser(client, username, userId)
+def login(client, username, password=None):
+    # Authenticate a user by username and return login status
+    user = __queryUserByUsername(client, username)
     if not user:
         return {'success': False, 'message': 'User not found'}
     
@@ -69,6 +75,7 @@ def login(client, username, userId=None, password=None):
     if verify_password(password, user['password']):
         return {'success': True, 'message': 'Login successful', 'user_data': {
             'username': user['username'],
+            'email': user.get('email', ''),
             'userId': user['userId'],
             'projects': user['projects']
         }}
@@ -155,17 +162,8 @@ def forgotPassword(client, email):
     db = db_utils.get_database(client)
     users_collection = db['users']
     
-    # Extract email prefix to match userId format used in registration
-    # Registration uses: userId = email.split('@')[0]
-    email_prefix = email.split('@')[0] if '@' in email else email
-    
-    # Try to find user by userId (email prefix) or username
-    user = users_collection.find_one({
-        '$or': [
-            {'userId': email_prefix},
-            {'username': email_prefix}
-        ]
-    })
+    # Try to find user by email
+    user = users_collection.find_one({'email': email})
     
     if not user:
         # Don't reveal if user exists or not for security
@@ -179,17 +177,31 @@ def forgotPassword(client, email):
     return {'success': True, 'message': 'If an account exists with this email, password reset instructions have been sent.'}
 
 def getUserByEmail(client, email):
-    db = client['hardwaredb']
-    users = db['users']
-    return users.find_one({'email': email})
+    """Get user by email address."""
+    db = db_utils.get_database(client)
+    users_collection = db['users']
+    return users_collection.find_one({'email': email})
 
 def updatePassword(client, email, new_password):
-    db = client['hardwaredb']
-    users = db['users']
+    """Update user password. Password will be encrypted before storing."""
+    db = db_utils.get_database(client)
+    users_collection = db['users']
 
-    result = users.update_one(
+    # Validate password input
+    try:
+        encrypted_password = encrypt_password(new_password)
+    except (ValueError, TypeError) as e:
+        return {'success': False, 'message': f'Password validation failed: {str(e)}'}
+
+    # Check if user exists
+    user = users_collection.find_one({'email': email})
+    if not user:
+        return {'success': False, 'message': 'User not found'}
+
+    # Update password with encrypted version
+    result = users_collection.update_one(
         {'email': email},
-        {'$set': {'password': new_password}}
+        {'$set': {'password': encrypted_password}}
     )
 
     if result.modified_count == 1:

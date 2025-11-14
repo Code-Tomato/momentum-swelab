@@ -4,6 +4,7 @@ import MyLoginPage from './pages/MyLoginPage';
 import MyRegistrationPage from './pages/MyRegistrationPage';
 import MyUserPortal from './pages/MyUserPortal';
 import ForgotPasswordPage from './pages/ForgotMyPassword';
+import ResetPasswordPage from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import './App.css';
 
@@ -21,6 +22,7 @@ function App() {
         <Route path="/login" element={<MyLoginPage />} />
         <Route path="/register" element={<MyRegistrationPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
 
         <Route
           path="/portal"
