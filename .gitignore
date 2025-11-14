@@ -35,6 +35,7 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+# Note: .env.example files should be committed (not ignored)
 
 # IDEs
 .vscode/

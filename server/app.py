@@ -38,6 +38,19 @@ def not_found(e):
 # Health check route
 @app.route('/health', methods=['GET'])
 def health_check():
+    """
+    Health check endpoint.
+    
+    Returns:
+        JSON response with system status and MongoDB connection status.
+        
+    Example Response:
+        {
+            "status": "healthy",
+            "mongodb_connected": true,
+            "message": "All systems operational"
+        }
+    """
     mongo_status = db_utils.test_mongodb_connection()
     return jsonify({
         'status': 'healthy',
@@ -49,6 +62,37 @@ def health_check():
 @app.route('/login', methods=['POST'])
 @db_utils.with_db_connection
 def login(client):
+    """
+    Authenticate a user and establish a session.
+    
+    Request Body:
+        {
+            "username": str (required),
+            "password": str (required),
+            "userId": str (optional, for backward compatibility)
+        }
+    
+    Returns:
+        JSON response with success status and user information.
+        
+    Example Request:
+        {
+            "username": "johndoe",
+            "password": "securepassword123"
+        }
+        
+    Example Response:
+        {
+            "success": true,
+            "message": "Login successful",
+            "userId": "john"
+        }
+        
+    Status Codes:
+        200 OK - Login successful
+        401 Unauthorized - Invalid credentials
+        400 Bad Request - Missing required fields
+    """
     data = request.get_json()
     username = data.get('username')
     userId = data.get('userId')  # Optional - for backward compatibility
@@ -127,6 +171,36 @@ def remove_user_from_project(client):
 @app.route('/register', methods=['POST'])
 @db_utils.with_db_connection
 def register(client):
+    """
+    Register a new user account.
+    
+    Request Body:
+        {
+            "username": str (required),
+            "email": str (required),
+            "password": str (required)
+        }
+    
+    Returns:
+        JSON response with success status.
+        
+    Example Request:
+        {
+            "username": "johndoe",
+            "email": "john@example.com",
+            "password": "securepassword123"
+        }
+        
+    Example Response:
+        {
+            "success": true,
+            "message": "User registered successfully"
+        }
+        
+    Status Codes:
+        200 OK - Registration successful
+        400 Bad Request - Missing required fields or validation error
+    """
     data = request.get_json()
     username = data.get('username')
     email = data.get('email')
@@ -190,6 +264,36 @@ def get_user_projects_list(client):
 @app.route('/create_project', methods=['POST'])
 @db_utils.with_db_connection
 def create_project(client):
+    """
+    Create a new project.
+    
+    Request Body:
+        {
+            "projectName": str (required),
+            "projectId": str (required),
+            "description": str (optional)
+        }
+    
+    Returns:
+        JSON response with success status.
+        
+    Example Request:
+        {
+            "projectName": "Machine Learning Research",
+            "projectId": "ML-2024-001",
+            "description": "Research project on neural networks"
+        }
+        
+    Example Response:
+        {
+            "success": true,
+            "message": "Project created successfully"
+        }
+        
+    Status Codes:
+        200 OK - Project created successfully
+        400 Bad Request - Missing required fields or project ID already exists
+    """
     data = request.get_json()
     projectName = data.get('projectName')
     projectId = data.get('projectId')
@@ -245,6 +349,39 @@ def get_hw_info(client):
 @app.route('/check_out', methods=['POST'])
 @db_utils.with_db_connection
 def check_out(client):
+    """
+    Check out hardware from a hardware set for a project.
+    
+    Request Body:
+        {
+            "projectId": str (required),
+            "hwSetName": str (required),
+            "qty": int (required, must be positive),
+            "userId": str (required)
+        }
+    
+    Returns:
+        JSON response with success status and updated availability.
+        
+    Example Request:
+        {
+            "projectId": "ML-2024-001",
+            "hwSetName": "HWSet1",
+            "qty": 5,
+            "userId": "john"
+        }
+        
+    Example Response:
+        {
+            "success": true,
+            "message": "Hardware checked out successfully",
+            "availability": 40
+        }
+        
+    Status Codes:
+        200 OK - Checkout successful
+        400 Bad Request - Missing required fields, invalid quantity, or insufficient availability
+    """
     data = request.get_json()
     projectId = data.get('projectId')
     hwSetName = data.get('hwSetName')
@@ -271,6 +408,39 @@ def check_out(client):
 @app.route('/check_in', methods=['POST'])
 @db_utils.with_db_connection
 def check_in(client):
+    """
+    Check in hardware back to a hardware set from a project.
+    
+    Request Body:
+        {
+            "projectId": str (required),
+            "hwSetName": str (required),
+            "qty": int (required, must be positive),
+            "userId": str (required)
+        }
+    
+    Returns:
+        JSON response with success status and updated availability.
+        
+    Example Request:
+        {
+            "projectId": "ML-2024-001",
+            "hwSetName": "HWSet1",
+            "qty": 3,
+            "userId": "john"
+        }
+        
+    Example Response:
+        {
+            "success": true,
+            "message": "Hardware checked in successfully",
+            "availability": 48
+        }
+        
+    Status Codes:
+        200 OK - Check-in successful
+        400 Bad Request - Missing required fields, invalid quantity, or attempting to check in more than checked out
+    """
     data = request.get_json()
     projectId = data.get('projectId')
     hwSetName = data.get('hwSetName')
