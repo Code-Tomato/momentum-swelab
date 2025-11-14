@@ -130,7 +130,7 @@ def getUserProjectsList(client, userId):
     if not user:
         return {'success': False, 'message': 'User not found'}
 
-    project_ids = user.get('projects', [])
+    project_ids = user.get("projects", [])
 
     project_list = []
     for pid in project_ids:
@@ -139,9 +139,8 @@ def getUserProjectsList(client, userId):
             project_list.append({
                 "projectId": proj.get("projectId"),
                 "projectName": proj.get("projectName"),
-                "description": proj.get("description", "")
+                "description": proj.get("description", ""),
+                "hwSets": proj.get("hwSets", {})   # shows the hardware sets
             })
 
-    return {'success': True, 'projects': project_list}
-
-
+    return {"success": True, "projects": project_list}
