@@ -190,9 +190,9 @@ function MyUserPortal() {
   return (
     <div className="p-4 max-w-5xl mx-auto">
       <div className="flex justify-between mb-4">
-        <h1 className="text-2xl font-bold">User Portal — Secondary Dashboard</h1>
+        <h1 className="text-2xl font-bold">User Portal</h1>
         <div>
-          <span className="mr-4">Signed in as <strong>{userId}</strong></span>
+          <span className="mr-4">Signed in as <strong>{userId} </strong></span>
           <button onClick={logout} className="px-3 py-1 border rounded">Logout</button>
         </div>
       </div>
