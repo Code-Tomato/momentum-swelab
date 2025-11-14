@@ -48,3 +48,21 @@ def with_db_connection(f):
     
     return decorated_function
 
+def drop_userId_index():
+    """Drop the userId unique index from the users collection."""
+    try:
+        client = get_mongo_client()
+        db = get_database(client)
+        users_collection = db['users']
+        
+        # Try to drop the userId index
+        try:
+            users_collection.drop_index('userId_1')
+            return {'success': True, 'message': 'Successfully dropped userId index'}
+        except Exception as e:
+            if 'index not found' in str(e).lower():
+                return {'success': True, 'message': 'userId index does not exist (already removed)'}
+            raise
+    except Exception as e:
+        return {'success': False, 'message': f'Error dropping index: {str(e)}'}
+

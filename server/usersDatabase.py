@@ -45,8 +45,14 @@ def addUser(client, username, email, password):
         'projects': []
     }
     
-    result = users_collection.insert_one(user)
-    return {'success': True, 'id': str(result.inserted_id)}
+    try:
+        result = users_collection.insert_one(user)
+        return {'success': True, 'id': str(result.inserted_id)}
+    except Exception as e:
+        # Check if it's a duplicate key error on userId index
+        if 'E11000' in str(e) and 'userId' in str(e):
+            return {'success': False, 'message': 'Database configuration error: Please remove the unique index on userId field. Contact administrator.'}
+        raise
 
 # Helper function to query a user by username
 def __queryUserByUsername(client, username):

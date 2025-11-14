@@ -613,6 +613,17 @@ def reset_password(client):
     result = usersDatabase.updatePassword(client, email, new_password)
     return jsonify(result)
 
+# Route for dropping userId index (admin utility)
+@app.route('/admin/drop_userid_index', methods=['POST'])
+@db_utils.with_db_connection
+def drop_userid_index_route(client):
+    """
+    Drop the userId unique index from the users collection.
+    This is a one-time operation to fix the duplicate key error.
+    """
+    result = db_utils.drop_userId_index()
+    return jsonify(result)
+
 # Route for deleting a user account
 @app.route('/delete_account', methods=['POST'])
 @db_utils.with_db_connection
