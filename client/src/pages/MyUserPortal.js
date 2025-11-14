@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { commonStyles, inputHandlers, buttonHandlers } from '../styles/sharedStyles';
 
@@ -18,50 +18,8 @@ function MyUserPortal() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState({ projects: false, hardware: false, create: false, join: false, checkout: false, checkin: false });
 
-  useEffect(() => {
-    if (!userId) return;
-    fetchProjects();
-    fetchHardware();
-    
-    // Poll for hardware updates every 5 minutes (when page is open)
-    const hardwareInterval = setInterval(() => {
-      fetchHardware();
-    }, 300000); // 5 minutes = 300000 milliseconds
-    
-    // Poll for project updates every 5 minutes
-    const projectsInterval = setInterval(() => {
-      fetchProjects();
-    }, 300000); // 5 minutes = 300000 milliseconds
-    
-    return () => {
-      clearInterval(hardwareInterval);
-      clearInterval(projectsInterval);
-    };
-  }, [userId]);
-  
-  // Update checkout/checkin forms when hardware sets change (dynamic hardware support)
-  useEffect(() => {
-    const hwKeys = Object.keys(globalHW);
-    if (hwKeys.length > 0) {
-      setCheckoutRequest(prev => {
-        const updated = { ...prev };
-        hwKeys.forEach(hw => {
-          if (!(hw in updated)) updated[hw] = 0;
-        });
-        return updated;
-      });
-      setCheckinRequest(prev => {
-        const updated = { ...prev };
-        hwKeys.forEach(hw => {
-          if (!(hw in updated)) updated[hw] = 0;
-        });
-        return updated;
-      });
-    }
-  }, [globalHW]);
-
   // Fetch user's projects
-  async function fetchProjects() {
+  const fetchProjects = useCallback(async () => {
     setLoading(prev => ({ ...prev, projects: true }));
     try {
       const res = await fetch(`${API_BASE}/get_user_projects_list`, {
@@ -85,14 +43,12 @@ function MyUserPortal() {
         if (data.message) setMessage(data.message);
       }
     } catch (err) {
-      console.error('Error fetching projects:', err);
       setProjects([]);
       setMessage('Error loading projects. Please refresh.');
     } finally {
       setLoading(prev => ({ ...prev, projects: false }));
     }
-  }
-
+  }, [userId]);
 
   async function fetchHardware() {
     setLoading(prev => ({ ...prev, hardware: true }));
@@ -108,12 +64,53 @@ function MyUserPortal() {
         setGlobalHW(hw);
       }
     } catch (err) {
-      console.error(err);
       setMessage('Error loading hardware inventory.');
     } finally {
       setLoading(prev => ({ ...prev, hardware: false }));
     }
   }
+
+  useEffect(() => {
+    if (!userId) return;
+    fetchProjects();
+    fetchHardware();
+    
+    // Poll for hardware updates every 5 minutes (when page is open)
+    const hardwareInterval = setInterval(() => {
+      fetchHardware();
+    }, 300000); // 5 minutes = 300000 milliseconds
+    
+    // Poll for project updates every 5 minutes
+    const projectsInterval = setInterval(() => {
+      fetchProjects();
+    }, 300000); // 5 minutes = 300000 milliseconds
+    
+    return () => {
+      clearInterval(hardwareInterval);
+      clearInterval(projectsInterval);
+    };
+  }, [userId, fetchProjects]);
+  
+  // Update checkout/checkin forms when hardware sets change (dynamic hardware support)
+  useEffect(() => {
+    const hwKeys = Object.keys(globalHW);
+    if (hwKeys.length > 0) {
+      setCheckoutRequest(prev => {
+        const updated = { ...prev };
+        hwKeys.forEach(hw => {
+          if (!(hw in updated)) updated[hw] = 0;
+        });
+        return updated;
+      });
+      setCheckinRequest(prev => {
+        const updated = { ...prev };
+        hwKeys.forEach(hw => {
+          if (!(hw in updated)) updated[hw] = 0;
+        });
+        return updated;
+      });
+    }
+  }, [globalHW]);
 
   async function handleCreateProject(e) {
     e.preventDefault();
@@ -152,7 +149,6 @@ function MyUserPortal() {
         setMessage(data.message || 'Error creating project');
       }
     } catch (err) {
-      console.error(err);
       setMessage('Server error creating project. Please try again.');
     } finally {
       setLoading(prev => ({ ...prev, create: false }));
@@ -183,7 +179,6 @@ function MyUserPortal() {
         setMessage(data.message || 'Error joining project');
       }
     } catch (err) {
-      console.error(err);
       setMessage('Server error joining project. Please try again.');
     } finally {
       setLoading(prev => ({ ...prev, join: false }));
@@ -210,7 +205,6 @@ function MyUserPortal() {
       setMessage(data.message || 'Error leaving project');
     }
   } catch (err) {
-    console.error(err);
     setMessage('Server error leaving project');
   }
 }
@@ -269,7 +263,6 @@ function MyUserPortal() {
       }
       await Promise.all([fetchHardware(), fetchProjects()]);
     } catch (err) {
-      console.error(err);
       setMessage('Error processing request. Please try again.');
     } finally {
       setLoading(prev => ({ ...prev, [loadingKey]: false }));

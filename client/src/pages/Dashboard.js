@@ -25,7 +25,6 @@ function Dashboard() {
             const response = await axios.get(`${API_BASE_URL}/health`);
             setHealth(response.data);
         } catch (error) {
-            console.error('Error checking health:', error);
             setHealth({ status: 'error', message: 'Cannot connect to server' });
         }
     };
@@ -38,7 +37,7 @@ function Dashboard() {
             setHardwareSets(response.data.data);
         }
         } catch (error) {
-        console.error('Error loading hardware details:', error);
+        // Error loading hardware details
         }
     };
     

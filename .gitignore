@@ -26,8 +26,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# React build - commented out to allow deployment to Heroku
-# client/build/
+# React build - built during CI/CD deployment
+client/build/
 
 # Environment variables
 .env
