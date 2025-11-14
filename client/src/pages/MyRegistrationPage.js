@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { commonStyles, inputHandlers, buttonHandlers } from '../styles/sharedStyles';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -8,11 +9,51 @@ function MyRegistrationPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ username: '', email: '', password: '' });
   const [message, setMessage] = useState('');
+  const [errors, setErrors] = useState({});
 
-  const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!form.username.trim()) {
+      newErrors.username = 'Username is required';
+    } else if (form.username.length < 3) {
+      newErrors.username = 'Username must be at least 3 characters';
+    }
+    
+    if (!form.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+    
+    if (!form.password) {
+      newErrors.password = 'Password is required';
+    } else if (form.password.length < 4) {
+      newErrors.password = 'Password must be at least 4 characters';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleChange = e => {
+    const { name, value } = e.target;
+    setForm({ ...form, [name]: value });
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: '' });
+    }
+  };
 
   const handleSubmit = async e => {
     e.preventDefault();
+    setMessage('');
+    
+    if (!validateForm()) {
+      setMessage('Please fix the errors below');
+      return;
+    }
+    
     try {
       const response = await axios.post(`${API_BASE_URL}/register`, form);
       if (response.data.success) {
@@ -22,183 +63,124 @@ function MyRegistrationPage() {
         setMessage(response.data.message || 'Registration failed. Try again.');
       }
     } catch (err) {
-      setMessage('Server error. Please try again later.');
+      setMessage(err.response?.data?.message || 'Server error. Please try again later.');
     }
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: '#0a0a0a',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
-    }}>
-      <div style={{
-        backgroundColor: '#1a1a1a',
-        padding: '48px',
-        border: '1px solid #333',
-        width: '100%',
-        maxWidth: '400px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '24px'
-      }}>
+    <div style={{ ...commonStyles.pageContainer, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+      <div style={commonStyles.card}>
         <div>
-          <h2 style={{ margin: '0 0 8px 0', fontSize: '28px', fontWeight: 600, color: '#fff' }}>Register</h2>
-          <p style={{ margin: 0, fontSize: '14px', color: '#888' }}>Create your account</p>
+          <h2 style={commonStyles.heading}>Register</h2>
+          <p style={commonStyles.subheading}>Create your account</p>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: '13px', fontWeight: 500, color: '#bbb', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Username</label>
+        <form onSubmit={handleSubmit} style={commonStyles.form}>
+          <div style={commonStyles.formGroup}>
+            <label style={commonStyles.label} htmlFor="reg-username">Username</label>
             <input
+              id="reg-username"
               name="username"
               placeholder="Choose a username"
               value={form.username}
               onChange={handleChange}
               required
-              style={{
-                padding: '10px 12px',
-                backgroundColor: '#252525',
-                border: '1px solid #333',
-                color: '#fff',
-                fontSize: '14px',
-                fontFamily: 'inherit',
-                outline: 'none',
-                transition: 'border-color 0.2s'
+              style={{ ...commonStyles.input, borderColor: errors.username ? '#ff6b6b' : '#333' }}
+              onFocus={inputHandlers.onFocus}
+              onBlur={(e) => {
+                inputHandlers.onBlur(e);
+                validateForm();
               }}
-              onFocus={(e) => e.target.style.borderColor = '#00d9ff'}
-              onBlur={(e) => e.target.style.borderColor = '#333'}
+              aria-label="Username"
+              aria-invalid={!!errors.username}
+              aria-describedby={errors.username ? 'username-error' : undefined}
             />
+            {errors.username && <div id="username-error" style={{ fontSize: '12px', color: '#ff6b6b', marginTop: '4px' }}>{errors.username}</div>}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: '13px', fontWeight: 500, color: '#bbb', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Email</label>
+          <div style={commonStyles.formGroup}>
+            <label style={commonStyles.label} htmlFor="reg-email">Email</label>
             <input
+              id="reg-email"
               name="email"
               type="email"
               placeholder="your@email.com"
               value={form.email}
               onChange={handleChange}
               required
-              style={{
-                padding: '10px 12px',
-                backgroundColor: '#252525',
-                border: '1px solid #333',
-                color: '#fff',
-                fontSize: '14px',
-                fontFamily: 'inherit',
-                outline: 'none',
-                transition: 'border-color 0.2s'
+              style={{ ...commonStyles.input, borderColor: errors.email ? '#ff6b6b' : '#333' }}
+              onFocus={inputHandlers.onFocus}
+              onBlur={(e) => {
+                inputHandlers.onBlur(e);
+                validateForm();
               }}
-              onFocus={(e) => e.target.style.borderColor = '#00d9ff'}
-              onBlur={(e) => e.target.style.borderColor = '#333'}
+              aria-label="Email address"
+              aria-invalid={!!errors.email}
+              aria-describedby={errors.email ? 'email-error' : undefined}
             />
+            {errors.email && <div id="email-error" style={{ fontSize: '12px', color: '#ff6b6b', marginTop: '4px' }}>{errors.email}</div>}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: '13px', fontWeight: 500, color: '#bbb', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Password</label>
+          <div style={commonStyles.formGroup}>
+            <label style={commonStyles.label} htmlFor="reg-password">Password</label>
             <input
+              id="reg-password"
               name="password"
               type="password"
-              placeholder="Create a password"
+              placeholder="Create a password (min 4 characters)"
               value={form.password}
               onChange={handleChange}
               required
-              style={{
-                padding: '10px 12px',
-                backgroundColor: '#252525',
-                border: '1px solid #333',
-                color: '#fff',
-                fontSize: '14px',
-                fontFamily: 'inherit',
-                outline: 'none',
-                transition: 'border-color 0.2s'
+              minLength={4}
+              style={{ ...commonStyles.input, borderColor: errors.password ? '#ff6b6b' : '#333' }}
+              onFocus={inputHandlers.onFocus}
+              onBlur={(e) => {
+                inputHandlers.onBlur(e);
+                validateForm();
               }}
-              onFocus={(e) => e.target.style.borderColor = '#00d9ff'}
-              onBlur={(e) => e.target.style.borderColor = '#333'}
+              aria-label="Password"
+              aria-invalid={!!errors.password}
+              aria-describedby={errors.password ? 'password-error' : undefined}
             />
+            {errors.password && <div id="password-error" style={{ fontSize: '12px', color: '#ff6b6b', marginTop: '4px' }}>{errors.password}</div>}
+            {!errors.password && form.password && form.password.length < 4 && (
+              <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>Password must be at least 4 characters</div>
+            )}
           </div>
 
           <button
             type="submit"
-            style={{
-              padding: '10px 16px',
-              backgroundColor: '#00d9ff',
-              color: '#0a0a0a',
-              border: 'none',
-              fontSize: '14px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'background-color 0.2s',
-              marginTop: '8px'
-            }}
-            onMouseEnter={(e) => e.target.style.backgroundColor = '#00c4e0'}
-            onMouseLeave={(e) => e.target.style.backgroundColor = '#00d9ff'}
+            style={commonStyles.primaryButton}
+            onMouseEnter={buttonHandlers.primaryHover}
+            onMouseLeave={buttonHandlers.primaryLeave}
+            aria-label="Register"
           >
             Register
           </button>
         </form>
 
         {message && (
-          <div style={{
-            padding: '12px',
-            backgroundColor: message.includes('successful') ? '#1a2a1a' : '#2a1a1a',
-            border: `1px solid ${message.includes('successful') ? '#2a5a2a' : '#5a2a2a'}`,
-            color: message.includes('successful') ? '#6bff6b' : '#ff6b6b',
-            fontSize: '13px',
-            borderRadius: '2px'
-          }}>
+          <div style={message.includes('successful') ? commonStyles.messageSuccess : commonStyles.messageError} role="alert">
             {message}
           </div>
         )}
 
-        <div style={{ borderTop: '1px solid #333', paddingTop: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={commonStyles.divider}>
           <button
             onClick={() => navigate('/login')}
-            style={{
-              padding: '10px 16px',
-              backgroundColor: 'transparent',
-              color: '#00d9ff',
-              border: '1px solid #00d9ff',
-              fontSize: '14px',
-              fontWeight: 500,
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = '#00d9ff';
-              e.target.style.color = '#0a0a0a';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = 'transparent';
-              e.target.style.color = '#00d9ff';
-            }}
+            style={commonStyles.secondaryButton}
+            onMouseEnter={buttonHandlers.secondaryHover}
+            onMouseLeave={buttonHandlers.secondaryLeave}
+            aria-label="Back to login"
           >
             Back to Login
           </button>
           <button
             onClick={() => navigate('/forgot-password')}
-            style={{
-              padding: '10px 16px',
-              backgroundColor: 'transparent',
-              color: '#888',
-              border: '1px solid #333',
-              fontSize: '14px',
-              fontWeight: 500,
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.borderColor = '#00d9ff';
-              e.target.style.color = '#00d9ff';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.borderColor = '#333';
-              e.target.style.color = '#888';
-            }}
+            style={commonStyles.tertiaryButton}
+            onMouseEnter={buttonHandlers.tertiaryHover}
+            onMouseLeave={buttonHandlers.tertiaryLeave}
+            aria-label="Forgot password"
           >
             Forgot Password?
           </button>

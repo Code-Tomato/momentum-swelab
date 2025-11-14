@@ -144,3 +144,36 @@ def getUserProjectsList(client, userId):
             })
 
     return {"success": True, "projects": project_list}
+
+# Function to handle forgot password request
+def forgotPassword(client, email):
+    """
+    Handle forgot password request.
+    In a production system, this would send an email with a reset link.
+    For now, it verifies the user exists and returns a success message.
+    """
+    db = db_utils.get_database(client)
+    users_collection = db['users']
+    
+    # Extract email prefix to match userId format used in registration
+    # Registration uses: userId = email.split('@')[0]
+    email_prefix = email.split('@')[0] if '@' in email else email
+    
+    # Try to find user by userId (email prefix) or username
+    user = users_collection.find_one({
+        '$or': [
+            {'userId': email_prefix},
+            {'username': email_prefix}
+        ]
+    })
+    
+    if not user:
+        # Don't reveal if user exists or not for security
+        return {'success': True, 'message': 'If an account exists with this email, password reset instructions have been sent.'}
+    
+    # In production, here you would:
+    # 1. Generate a secure reset token
+    # 2. Store token with expiration in database
+    # 3. Send email with reset link
+    # For now, return success message
+    return {'success': True, 'message': 'If an account exists with this email, password reset instructions have been sent.'}

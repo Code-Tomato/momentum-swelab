@@ -13,9 +13,16 @@ import db_utils
 app = Flask(__name__, static_folder='../client/build', static_url_path='/')
 
 # Configure CORS to allow GitHub Pages and local development
+# Get allowed origins from environment or use defaults
+ALLOWED_ORIGINS = os.environ.get('ALLOWED_ORIGINS', 
+    'http://localhost:3000,http://localhost:5000,https://Code-Tomato.github.io'
+).split(',')
+
 CORS(app, resources={
     r"/*": {
-        "origins": "*"  # For now, allow all. Update to specific origins for production security
+        "origins": [origin.strip() for origin in ALLOWED_ORIGINS],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
     }
 })
 
@@ -73,6 +80,10 @@ def join_project(client):
     userId = data.get('userId')
     projectId = data.get('projectId')
 
+    # Validate required fields
+    if not userId or not projectId:
+        return jsonify({'success': False, 'message': 'userId and projectId are required'})
+
     # Attempt to join the project using the usersDatabase module
     user_result = usersDatabase.joinProject(client, userId, projectId)
     if user_result['success']:
@@ -81,6 +92,8 @@ def join_project(client):
         if project_result['success']:
             return jsonify({'success': True, 'message': 'Successfully joined project'})
         else:
+            # Rollback: remove user from user's project list if project add failed
+            usersDatabase.leaveProject(client, userId, projectId)
             return jsonify(project_result)
     else:
         return jsonify(user_result)
@@ -92,10 +105,22 @@ def remove_user_from_project(client):
     data = request.get_json()
     userId = data.get('userId')
     projectId = data.get('projectId')
+    
+    # Validate required fields
+    if not userId or not projectId:
+        return jsonify({'success': False, 'message': 'userId and projectId are required'})
+    
     # remove user from both user and project collections
-    usersDatabase.leaveProject(client, userId, projectId)
-    projectsDatabase.removeUser(client, projectId, userId)
-    return jsonify({'success': True, 'message': 'User left project'})
+    user_result = usersDatabase.leaveProject(client, userId, projectId)
+    project_result = projectsDatabase.removeUser(client, projectId, userId)
+    
+    # Check if both operations succeeded
+    if user_result['success'] and project_result['success']:
+        return jsonify({'success': True, 'message': 'User left project'})
+    elif not user_result['success']:
+        return jsonify(user_result)
+    else:
+        return jsonify(project_result)
 
 
 # Route for user registration (frontend uses this)
@@ -118,6 +143,21 @@ def register(client):
     result = usersDatabase.addUser(client, username, userId, password)
     return jsonify(result)
 
+# Route for forgot password
+@app.route('/forgot-password', methods=['POST'])
+@db_utils.with_db_connection
+def forgot_password(client):
+    data = request.get_json()
+    email = data.get('email')
+
+    # Validate required fields
+    if not email:
+        return jsonify({'success': False, 'message': 'Email is required'})
+
+    # Attempt to process forgot password request
+    result = usersDatabase.forgotPassword(client, email)
+    return jsonify(result)
+
 # Route for adding a new user (legacy/API endpoint)
 @app.route('/add_user', methods=['POST'])
 @db_utils.with_db_connection
@@ -138,6 +178,10 @@ def get_user_projects_list(client):
     data = request.get_json()
     userId = data.get('userId')
 
+    # Validate required fields
+    if not userId:
+        return jsonify({'success': False, 'message': 'userId is required'})
+
     # Fetch the user's projects using the usersDatabase module
     result = usersDatabase.getUserProjectsList(client, userId)
     return jsonify(result)
@@ -149,7 +193,11 @@ def create_project(client):
     data = request.get_json()
     projectName = data.get('projectName')
     projectId = data.get('projectId')
-    description = data.get('description')
+    description = data.get('description', '')
+
+    # Validate required fields
+    if not projectName or not projectId:
+        return jsonify({'success': False, 'message': 'projectName and projectId are required'})
 
     # Attempt to create the project using the projectsDatabase module
     result = projectsDatabase.createProject(client, projectName, projectId, description)
@@ -203,6 +251,18 @@ def check_out(client):
     qty = data.get('qty')
     userId = data.get('userId')
 
+    # Validate required fields
+    if not projectId or not hwSetName or qty is None or not userId:
+        return jsonify({'success': False, 'message': 'projectId, hwSetName, qty, and userId are required'})
+    
+    # Validate qty is numeric and positive
+    try:
+        qty = int(qty)
+        if qty <= 0:
+            return jsonify({'success': False, 'message': 'qty must be a positive integer'})
+    except (ValueError, TypeError):
+        return jsonify({'success': False, 'message': 'qty must be a valid number'})
+
     # Attempt to check out the hardware using the projectsDatabase module
     result = projectsDatabase.checkOutHW(client, projectId, hwSetName, qty, userId)
     return jsonify(result)
@@ -216,6 +276,18 @@ def check_in(client):
     hwSetName = data.get('hwSetName')
     qty = data.get('qty')
     userId = data.get('userId')
+
+    # Validate required fields
+    if not projectId or not hwSetName or qty is None or not userId:
+        return jsonify({'success': False, 'message': 'projectId, hwSetName, qty, and userId are required'})
+    
+    # Validate qty is numeric and positive
+    try:
+        qty = int(qty)
+        if qty <= 0:
+            return jsonify({'success': False, 'message': 'qty must be a positive integer'})
+    except (ValueError, TypeError):
+        return jsonify({'success': False, 'message': 'qty must be a valid number'})
 
     # Attempt to check in the hardware using the projectsDatabase module
     result = projectsDatabase.checkInHW(client, projectId, hwSetName, qty, userId)

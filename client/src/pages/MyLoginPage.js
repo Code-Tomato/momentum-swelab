@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { commonStyles, inputHandlers, buttonHandlers } from '../styles/sharedStyles';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -8,11 +9,38 @@ function MyLoginPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
 
-  const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
+  const validateForm = () => {
+    const newErrors = {};
+    if (!form.username.trim()) {
+      newErrors.username = 'Username is required';
+    }
+    if (!form.password) {
+      newErrors.password = 'Password is required';
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleChange = e => {
+    const { name, value } = e.target;
+    setForm({ ...form, [name]: value });
+    setError('');
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: '' });
+    }
+  };
 
   const handleSubmit = async e => {
     e.preventDefault();
+    setError('');
+    
+    if (!validateForm()) {
+      setError('Please fill in all fields');
+      return;
+    }
+    
     try {
       const response = await axios.post(`${API_BASE_URL}/login`, form);
       if (response.data.success) {
@@ -20,150 +48,95 @@ function MyLoginPage() {
         sessionStorage.setItem('userId', userId);
         sessionStorage.setItem('user', JSON.stringify(response.data.user_data || {}));
         navigate('/portal');
-      } else setError(response.data.message || 'Login failed');
+      } else {
+        setError(response.data.message || 'Login failed');
+      }
     } catch (err) {
-      setError('Server error. Please try again later.');
+      setError(err.response?.data?.message || 'Server error. Please try again later.');
     }
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: '#0a0a0a',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
-    }}>
-      <div style={{
-        backgroundColor: '#1a1a1a',
-        padding: '48px',
-        border: '1px solid #333',
-        width: '100%',
-        maxWidth: '400px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '24px'
-      }}>
+    <div style={{ ...commonStyles.pageContainer, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+      <div style={commonStyles.card}>
         <div>
-          <h2 style={{ margin: '0 0 8px 0', fontSize: '28px', fontWeight: 600, color: '#fff' }}>Login</h2>
-          <p style={{ margin: 0, fontSize: '14px', color: '#888' }}>Access your account</p>
+          <h2 style={commonStyles.heading}>Login</h2>
+          <p style={commonStyles.subheading}>Access your account</p>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: '13px', fontWeight: 500, color: '#bbb', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Username</label>
+        <form onSubmit={handleSubmit} style={commonStyles.form}>
+          <div style={commonStyles.formGroup}>
+            <label style={commonStyles.label} htmlFor="username">Username</label>
             <input
+              id="username"
               name="username"
               placeholder="Enter your username"
               value={form.username}
               onChange={handleChange}
               required
-              style={{
-                padding: '10px 12px',
-                backgroundColor: '#252525',
-                border: '1px solid #333',
-                color: '#fff',
-                fontSize: '14px',
-                fontFamily: 'inherit',
-                outline: 'none',
-                transition: 'border-color 0.2s'
+              style={{ ...commonStyles.input, borderColor: errors.username ? '#ff6b6b' : '#333' }}
+              onFocus={inputHandlers.onFocus}
+              onBlur={(e) => {
+                inputHandlers.onBlur(e);
+                validateForm();
               }}
-              onFocus={(e) => e.target.style.borderColor = '#00d9ff'}
-              onBlur={(e) => e.target.style.borderColor = '#333'}
+              aria-label="Username"
+              aria-invalid={!!errors.username}
             />
+            {errors.username && <div style={{ fontSize: '12px', color: '#ff6b6b', marginTop: '4px' }}>{errors.username}</div>}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: '13px', fontWeight: 500, color: '#bbb', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Password</label>
+          <div style={commonStyles.formGroup}>
+            <label style={commonStyles.label} htmlFor="password">Password</label>
             <input
+              id="password"
               name="password"
               type="password"
               placeholder="Enter your password"
               value={form.password}
               onChange={handleChange}
               required
-              style={{
-                padding: '10px 12px',
-                backgroundColor: '#252525',
-                border: '1px solid #333',
-                color: '#fff',
-                fontSize: '14px',
-                fontFamily: 'inherit',
-                outline: 'none',
-                transition: 'border-color 0.2s'
+              style={{ ...commonStyles.input, borderColor: errors.password ? '#ff6b6b' : '#333' }}
+              onFocus={inputHandlers.onFocus}
+              onBlur={(e) => {
+                inputHandlers.onBlur(e);
+                validateForm();
               }}
-              onFocus={(e) => e.target.style.borderColor = '#00d9ff'}
-              onBlur={(e) => e.target.style.borderColor = '#333'}
+              aria-label="Password"
+              aria-invalid={!!errors.password}
             />
+            {errors.password && <div style={{ fontSize: '12px', color: '#ff6b6b', marginTop: '4px' }}>{errors.password}</div>}
           </div>
 
           <button
             type="submit"
-            style={{
-              padding: '10px 16px',
-              backgroundColor: '#00d9ff',
-              color: '#0a0a0a',
-              border: 'none',
-              fontSize: '14px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'background-color 0.2s',
-              marginTop: '8px'
-            }}
-            onMouseEnter={(e) => e.target.style.backgroundColor = '#00c4e0'}
-            onMouseLeave={(e) => e.target.style.backgroundColor = '#00d9ff'}
+            style={commonStyles.primaryButton}
+            onMouseEnter={buttonHandlers.primaryHover}
+            onMouseLeave={buttonHandlers.primaryLeave}
+            aria-label="Login"
           >
             Login
           </button>
         </form>
 
-        {error && <div style={{ padding: '12px', backgroundColor: '#2a1a1a', border: '1px solid #5a2a2a', color: '#ff6b6b', fontSize: '13px', borderRadius: '2px' }}>{error}</div>}
+        {error && <div style={commonStyles.messageError} role="alert">{error}</div>}
 
-        <div style={{ borderTop: '1px solid #333', paddingTop: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={commonStyles.divider}>
           <button
             onClick={() => navigate('/register')}
-            style={{
-              padding: '10px 16px',
-              backgroundColor: 'transparent',
-              color: '#00d9ff',
-              border: '1px solid #00d9ff',
-              fontSize: '14px',
-              fontWeight: 500,
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = '#00d9ff';
-              e.target.style.color = '#0a0a0a';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = 'transparent';
-              e.target.style.color = '#00d9ff';
-            }}
+            style={commonStyles.secondaryButton}
+            onMouseEnter={buttonHandlers.secondaryHover}
+            onMouseLeave={buttonHandlers.secondaryLeave}
+            aria-label="Navigate to registration"
           >
             Register
           </button>
           <button
             onClick={() => navigate('/forgot-password')}
-            style={{
-              padding: '10px 16px',
-              backgroundColor: 'transparent',
-              color: '#888',
-              border: '1px solid #333',
-              fontSize: '14px',
-              fontWeight: 500,
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.borderColor = '#00d9ff';
-              e.target.style.color = '#00d9ff';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.borderColor = '#333';
-              e.target.style.color = '#888';
-            }}
+            style={commonStyles.tertiaryButton}
+            onMouseEnter={buttonHandlers.tertiaryHover}
+            onMouseLeave={buttonHandlers.tertiaryLeave}
+            aria-label="Forgot password"
           >
             Forgot Password?
           </button>

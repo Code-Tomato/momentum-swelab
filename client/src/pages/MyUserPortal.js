@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
+import { commonStyles, inputHandlers, buttonHandlers } from '../styles/sharedStyles';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -15,6 +16,7 @@ function MyUserPortal() {
   const [checkoutRequest, setCheckoutRequest] = useState({ HWSet1: 0, HWSet2: 0 });
   const [checkinRequest, setCheckinRequest] = useState({ HWSet1: 0, HWSet2: 0 });
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState({ projects: false, hardware: false, create: false, join: false, checkout: false, checkin: false });
 
   useEffect(() => {
     if (!userId) return;
@@ -24,35 +26,40 @@ function MyUserPortal() {
 
   // Fetch user's projects
   async function fetchProjects() {
-  try {
-    const res = await fetch(`${API_BASE}/get_user_projects_list`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId }),
-    });
-    const data = await res.json();
-    console.log('Projects response:', data);
-    
-    // Populate projects list
-    if (data.success) {
-      const list = (data.projects || data.data || []).map((p) => ({
-        projectId: p.projectId,
-        projectName: p.projectName,
-        description: p.description,
-        hwSets: p.hwSets || {}
-      }));
-      setProjects(list);
-    } else {
+    setLoading(prev => ({ ...prev, projects: true }));
+    try {
+      const res = await fetch(`${API_BASE}/get_user_projects_list`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+      const data = await res.json();
+      
+      // Populate projects list
+      if (data.success) {
+        const list = (data.projects || []).map((p) => ({
+          projectId: p.projectId,
+          projectName: p.projectName,
+          description: p.description || '',
+          hwSets: p.hwSets || {}
+        }));
+        setProjects(list);
+      } else {
+        setProjects([]);
+        if (data.message) setMessage(data.message);
+      }
+    } catch (err) {
+      console.error('Error fetching projects:', err);
       setProjects([]);
+      setMessage('Error loading projects. Please refresh.');
+    } finally {
+      setLoading(prev => ({ ...prev, projects: false }));
     }
-  } catch (err) {
-    console.error('Error fetching projects:', err);
-    setProjects([]);
   }
-}
 
 
   async function fetchHardware() {
+    setLoading(prev => ({ ...prev, hardware: true }));
     try {
       const res = await fetch(`${API_BASE}/get_all_hardware`);
       const data = await res.json();
@@ -66,6 +73,9 @@ function MyUserPortal() {
       }
     } catch (err) {
       console.error(err);
+      setMessage('Error loading hardware inventory.');
+    } finally {
+      setLoading(prev => ({ ...prev, hardware: false }));
     }
   }
 
@@ -77,42 +87,71 @@ function MyUserPortal() {
       setMessage('Project ID and Name required');
       return;
     }
-    const res = await fetch(`${API_BASE}/create_project`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ projectId, projectName, description }),
-    });
-    const data = await res.json();
-    if (data.success) {
-      setMessage(`Project ${projectName} created.`);
-      fetchProjects();
-    } else setMessage(data.message || 'Error creating project');
-    
-    // Auto-join the newly created project
-    await fetch(`${API_BASE}/join_project`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, projectId }),
-    });
-    fetchProjects();
-
+    setLoading(prev => ({ ...prev, create: true }));
+    try {
+      const res = await fetch(`${API_BASE}/create_project`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId, projectName, description }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessage(`Project ${projectName} created. Joining project...`);
+        setCreateForm({ projectId: '', projectName: '', description: '' });
+        
+        // Auto-join the newly created project
+        const joinRes = await fetch(`${API_BASE}/join_project`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, projectId }),
+        });
+        const joinData = await joinRes.json();
+        if (joinData.success) {
+          setMessage(`Project ${projectName} created and joined successfully.`);
+        } else {
+          setMessage(`Project created but failed to join: ${joinData.message || 'Unknown error'}`);
+        }
+        await fetchProjects();
+      } else {
+        setMessage(data.message || 'Error creating project');
+      }
+    } catch (err) {
+      console.error(err);
+      setMessage('Server error creating project. Please try again.');
+    } finally {
+      setLoading(prev => ({ ...prev, create: false }));
+    }
   }
 
   // Join existing project
   async function handleJoinProject(e) {
     e.preventDefault();
     setMessage('');
-    if (!joinProjectId) return setMessage('Enter a project ID');
-    const res = await fetch(`${API_BASE}/join_project`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, projectId: joinProjectId }),
-    });
-    const data = await res.json();
-    if (data.success) {
-      setMessage('Joined project successfully');
-      fetchProjects();
-    } else setMessage(data.message || 'Error joining project');
+    if (!joinProjectId.trim()) {
+      setMessage('Enter a project ID');
+      return;
+    }
+    setLoading(prev => ({ ...prev, join: true }));
+    try {
+      const res = await fetch(`${API_BASE}/join_project`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, projectId: joinProjectId.trim() }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessage('Joined project successfully');
+        setJoinProjectId('');
+        await fetchProjects();
+      } else {
+        setMessage(data.message || 'Error joining project');
+      }
+    } catch (err) {
+      console.error(err);
+      setMessage('Server error joining project. Please try again.');
+    } finally {
+      setLoading(prev => ({ ...prev, join: false }));
+    }
   }
 
   // Leave project
@@ -158,26 +197,42 @@ function MyUserPortal() {
   }
 
   async function checkoutOrCheckin(endpoint, r1, r2) {
+    const loadingKey = endpoint === 'check_out' ? 'checkout' : 'checkin';
+    setLoading(prev => ({ ...prev, [loadingKey]: true }));
     try {
       const hwSets = [
         { name: 'HWSet1', qty: r1 },
         { name: 'HWSet2', qty: r2 },
       ];
+      const results = [];
       for (const hw of hwSets) {
         if (hw.qty > 0) {
-          await fetch(`${API_BASE}/${endpoint}`, {
+          const res = await fetch(`${API_BASE}/${endpoint}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ projectId: selectedProjectId, hwSetName: hw.name, qty: hw.qty, userId }),
           });
+          const data = await res.json();
+          results.push({ hw: hw.name, success: data.success, message: data.message });
         }
       }
-      setMessage(endpoint === 'check_out' ? 'Checkout successful' : 'Check-in successful');
-      fetchHardware();
-      fetchProjects();
+      const failed = results.filter(r => !r.success);
+      if (failed.length > 0) {
+        setMessage(`Some operations failed: ${failed.map(f => `${f.hw}: ${f.message}`).join(', ')}`);
+      } else {
+        setMessage(endpoint === 'check_out' ? 'Checkout successful' : 'Check-in successful');
+        if (endpoint === 'check_out') {
+          setCheckoutRequest({ HWSet1: 0, HWSet2: 0 });
+        } else {
+          setCheckinRequest({ HWSet1: 0, HWSet2: 0 });
+        }
+      }
+      await Promise.all([fetchHardware(), fetchProjects()]);
     } catch (err) {
       console.error(err);
-      setMessage('Error processing request');
+      setMessage('Error processing request. Please try again.');
+    } finally {
+      setLoading(prev => ({ ...prev, [loadingKey]: false }));
     }
   }
 
@@ -189,39 +244,18 @@ function MyUserPortal() {
   if (!userId) return <Navigate to="/login" replace />;
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#0a0a0a', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+    <div style={commonStyles.pageContainer}>
       {/* Header */}
-      <div style={{
-        backgroundColor: '#1a1a1a',
-        padding: '20px 32px',
-        borderBottom: '1px solid #333',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 600, color: '#fff' }}>Portal</h1>
+      <div style={commonStyles.header}>
+        <h1 style={commonStyles.headerTitle}>Portal</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <span style={{ fontSize: '14px', color: '#bbb' }}>Signed in as <strong>{userId}</strong></span>
           <button
             onClick={logout}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: 'transparent',
-              color: '#ff6b6b',
-              border: '1px solid #5a2a2a',
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.borderColor = '#ff6b6b';
-              e.target.style.backgroundColor = '#2a1a1a';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.borderColor = '#5a2a2a';
-              e.target.style.backgroundColor = 'transparent';
-            }}
+            style={commonStyles.dangerButton}
+            onMouseEnter={buttonHandlers.dangerHover}
+            onMouseLeave={buttonHandlers.dangerLeave}
+            aria-label="Logout"
           >
             Logout
           </button>
@@ -231,91 +265,60 @@ function MyUserPortal() {
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '32px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', marginBottom: '32px' }}>
           {/* Create Project */}
-          <div style={{
-            backgroundColor: '#1a1a1a',
-            padding: '24px',
-            border: '1px solid #333'
-          }}>
-            <h2 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: 600, color: '#fff' }}>Create Project</h2>
+          <div style={commonStyles.cardSmall}>
+            <h2 style={commonStyles.headingSmall}>Create Project</h2>
             <form onSubmit={handleCreateProject} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Project ID</label>
+                <label style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }} htmlFor="create-project-id">Project ID</label>
                 <input
+                  id="create-project-id"
                   placeholder="unique-id"
                   value={createForm.projectId}
                   onChange={(e) => setCreateForm({ ...createForm, projectId: e.target.value })}
-                  style={{
-                    padding: '8px 12px',
-                    backgroundColor: '#252525',
-                    border: '1px solid #333',
-                    color: '#fff',
-                    fontSize: '13px',
-                    fontFamily: 'inherit',
-                    outline: 'none',
-                    transition: 'border-color 0.2s'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#00d9ff'}
-                  onBlur={(e) => e.target.style.borderColor = '#333'}
+                  style={commonStyles.inputSmall}
+                  onFocus={inputHandlers.onFocus}
+                  onBlur={inputHandlers.onBlur}
+                  aria-label="Project ID"
+                  disabled={loading.create}
                 />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Project Name</label>
+                <label style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }} htmlFor="create-project-name">Project Name</label>
                 <input
+                  id="create-project-name"
                   placeholder="Project name"
                   value={createForm.projectName}
                   onChange={(e) => setCreateForm({ ...createForm, projectName: e.target.value })}
-                  style={{
-                    padding: '8px 12px',
-                    backgroundColor: '#252525',
-                    border: '1px solid #333',
-                    color: '#fff',
-                    fontSize: '13px',
-                    fontFamily: 'inherit',
-                    outline: 'none',
-                    transition: 'border-color 0.2s'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#00d9ff'}
-                  onBlur={(e) => e.target.style.borderColor = '#333'}
+                  style={commonStyles.inputSmall}
+                  onFocus={inputHandlers.onFocus}
+                  onBlur={inputHandlers.onBlur}
+                  aria-label="Project Name"
+                  disabled={loading.create}
                 />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Description</label>
+                <label style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }} htmlFor="create-project-desc">Description</label>
                 <textarea
+                  id="create-project-desc"
                   placeholder="Project description"
                   value={createForm.description}
                   onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
-                  style={{
-                    padding: '8px 12px',
-                    backgroundColor: '#252525',
-                    border: '1px solid #333',
-                    color: '#fff',
-                    fontSize: '13px',
-                    fontFamily: 'inherit',
-                    outline: 'none',
-                    transition: 'border-color 0.2s',
-                    minHeight: '80px',
-                    resize: 'vertical'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#00d9ff'}
-                  onBlur={(e) => e.target.style.borderColor = '#333'}
+                  style={commonStyles.textarea}
+                  onFocus={inputHandlers.onFocus}
+                  onBlur={inputHandlers.onBlur}
+                  aria-label="Project Description"
+                  disabled={loading.create}
                 />
               </div>
               <button
                 type="submit"
-                style={{
-                  padding: '8px 12px',
-                  backgroundColor: '#00d9ff',
-                  color: '#0a0a0a',
-                  border: 'none',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s'
-                }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = '#00c4e0'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = '#00d9ff'}
+                style={commonStyles.primaryButtonSmall}
+                onMouseEnter={buttonHandlers.primaryHover}
+                onMouseLeave={buttonHandlers.primaryLeave}
+                disabled={loading.create}
+                aria-label="Create project"
               >
-                Create
+                {loading.create ? 'Creating...' : 'Create'}
               </button>
             </form>
 
@@ -326,36 +329,21 @@ function MyUserPortal() {
                   placeholder="Project ID"
                   value={joinProjectId}
                   onChange={(e) => setJoinProjectId(e.target.value)}
-                  style={{
-                    flex: 1,
-                    padding: '8px 12px',
-                    backgroundColor: '#252525',
-                    border: '1px solid #333',
-                    color: '#fff',
-                    fontSize: '13px',
-                    fontFamily: 'inherit',
-                    outline: 'none',
-                    transition: 'border-color 0.2s'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#00d9ff'}
-                  onBlur={(e) => e.target.style.borderColor = '#333'}
+                  style={{ ...commonStyles.inputSmall, flex: 1 }}
+                  onFocus={inputHandlers.onFocus}
+                  onBlur={inputHandlers.onBlur}
+                  aria-label="Project ID to join"
+                  disabled={loading.join}
                 />
                 <button
                   type="submit"
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: '#00d9ff',
-                    color: '#0a0a0a',
-                    border: 'none',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'background-color 0.2s'
-                  }}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = '#00c4e0'}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = '#00d9ff'}
+                  style={commonStyles.primaryButtonSmall}
+                  onMouseEnter={buttonHandlers.primaryHover}
+                  onMouseLeave={buttonHandlers.primaryLeave}
+                  disabled={loading.join}
+                  aria-label="Join project"
                 >
-                  Join
+                  {loading.join ? 'Joining...' : 'Join'}
                 </button>
               </form>
             </div>
@@ -363,141 +351,127 @@ function MyUserPortal() {
             {message && (
               <div style={{
                 marginTop: '16px',
-                padding: '12px',
-                backgroundColor: message.includes('Error') || message.includes('failed') ? '#2a1a1a' : '#1a2a1a',
-                border: `1px solid ${message.includes('Error') || message.includes('failed') ? '#5a2a2a' : '#2a5a2a'}`,
-                color: message.includes('Error') || message.includes('failed') ? '#ff6b6b' : '#6bff6b',
-                fontSize: '12px',
-                borderRadius: '2px'
-              }}>
+                ...(message.includes('Error') || message.includes('failed') ? commonStyles.messageError : commonStyles.messageSuccess),
+                fontSize: '12px'
+              }} role="alert">
                 {message}
               </div>
             )}
           </div>
 
           {/* Hardware Sets */}
-          <div style={{
-            backgroundColor: '#1a1a1a',
-            padding: '24px',
-            border: '1px solid #333'
-          }}>
-            <h2 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: 600, color: '#fff' }}>Hardware Inventory</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {Object.keys(globalHW).map((hw) => (
-                <div key={hw} style={{
-                  padding: '12px',
-                  backgroundColor: '#252525',
-                  border: '1px solid #333'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <strong style={{ color: '#fff', fontSize: '14px' }}>{hw}</strong>
-                    <span style={{ color: '#888', fontSize: '12px' }}>Cap: {globalHW[hw].capacity}</span>
+          <div style={commonStyles.cardSmall}>
+            <h2 style={commonStyles.headingSmall}>Hardware Inventory</h2>
+            {loading.hardware ? (
+              <div style={{ fontSize: '13px', color: '#888', textAlign: 'center', padding: '20px' }}>Loading...</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {Object.keys(globalHW).map((hw) => (
+                  <div key={hw} style={{
+                    padding: '12px',
+                    backgroundColor: '#252525',
+                    border: '1px solid #333'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <strong style={{ color: '#fff', fontSize: '14px' }}>{hw}</strong>
+                      <span style={{ color: '#888', fontSize: '12px' }}>Cap: {globalHW[hw].capacity}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                      <span style={{ color: '#888' }}>Available</span>
+                      <span style={{ color: globalHW[hw].available > 0 ? '#6bff6b' : '#ff6b6b', fontWeight: 600 }}>{globalHW[hw].available}</span>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                    <span style={{ color: '#888' }}>Available</span>
-                    <span style={{ color: globalHW[hw].available > 0 ? '#6bff6b' : '#ff6b6b', fontWeight: 600 }}>{globalHW[hw].available}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Projects List */}
-          <div style={{
-            backgroundColor: '#1a1a1a',
-            padding: '24px',
-            border: '1px solid #333'
-          }}>
-            <h2 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: 600, color: '#fff' }}>Your Projects</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '400px', overflowY: 'auto' }}>
-              {projects.length === 0 ? (
-                <div style={{ fontSize: '13px', color: '#888' }}>No projects yet.</div>
-              ) : (
-                projects.map((p) => (
-                  <div
-                    key={p.projectId}
-                    onClick={() => setSelectedProjectId(p.projectId)}
-                    style={{
-                      padding: '12px',
-                      backgroundColor: selectedProjectId === p.projectId ? '#252525' : 'transparent',
-                      border: `1px solid ${selectedProjectId === p.projectId ? '#00d9ff' : '#333'}`,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      gap: '8px'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (selectedProjectId !== p.projectId) {
-                        e.currentTarget.style.borderColor = '#555';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (selectedProjectId !== p.projectId) {
-                        e.currentTarget.style.borderColor = '#333';
-                      }
-                    }}
-                  >
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, color: '#fff', fontSize: '13px', marginBottom: '4px' }}>
-                        {p.projectName}
-                        <div style={{ fontSize: '11px', color: '#888', fontWeight: 400, marginTop: '2px' }}>ID: {p.projectId}</div>
-                      </div>
-                      <div style={{ fontSize: '12px', color: '#888', marginBottom: '4px' }}>
-                        {p.description}
-                      </div>
-                      {p.hwSets && Object.entries(p.hwSets).filter(([_, amount]) => amount > 0).length > 0 && (
-                        <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
-                          {Object.entries(p.hwSets)
-                            .filter(([_, amount]) => amount > 0)
-                            .map(([hwName, amount]) => (
-                            <div key={hwName}>{hwName}: {amount}</div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleLeaveProject(p.projectId);
+          <div style={commonStyles.cardSmall}>
+            <h2 style={commonStyles.headingSmall}>Your Projects</h2>
+            {loading.projects ? (
+              <div style={{ fontSize: '13px', color: '#888', textAlign: 'center', padding: '20px' }}>Loading...</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '400px', overflowY: 'auto' }}>
+                {projects.length === 0 ? (
+                  <div style={{ fontSize: '13px', color: '#888' }}>No projects yet.</div>
+                ) : (
+                  projects.map((p) => (
+                    <div
+                      key={p.projectId}
+                      onClick={() => setSelectedProjectId(p.projectId)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setSelectedProjectId(p.projectId);
+                        }
                       }}
                       style={{
-                        padding: '6px 10px',
-                        backgroundColor: 'transparent',
-                        color: '#ff6b6b',
-                        border: '1px solid #5a2a2a',
-                        fontSize: '11px',
-                        fontWeight: 600,
+                        padding: '12px',
+                        backgroundColor: selectedProjectId === p.projectId ? '#252525' : 'transparent',
+                        border: `1px solid ${selectedProjectId === p.projectId ? '#00d9ff' : '#333'}`,
                         cursor: 'pointer',
                         transition: 'all 0.2s',
-                        whiteSpace: 'nowrap'
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        gap: '8px'
                       }}
                       onMouseEnter={(e) => {
-                        e.target.style.borderColor = '#ff6b6b';
-                        e.target.style.backgroundColor = '#2a1a1a';
+                        if (selectedProjectId !== p.projectId) {
+                          e.currentTarget.style.borderColor = '#555';
+                        }
                       }}
                       onMouseLeave={(e) => {
-                        e.target.style.borderColor = '#5a2a2a';
-                        e.target.style.backgroundColor = 'transparent';
+                        if (selectedProjectId !== p.projectId) {
+                          e.currentTarget.style.borderColor = '#333';
+                        }
                       }}
+                      aria-label={`Select project ${p.projectName}`}
                     >
-                      Leave
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, color: '#fff', fontSize: '13px', marginBottom: '4px' }}>
+                          {p.projectName}
+                          <div style={{ fontSize: '11px', color: '#888', fontWeight: 400, marginTop: '2px' }}>ID: {p.projectId}</div>
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#888', marginBottom: '4px' }}>
+                          {p.description}
+                        </div>
+                        {p.hwSets && Object.entries(p.hwSets).filter(([_, amount]) => amount > 0).length > 0 && (
+                          <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
+                            {Object.entries(p.hwSets)
+                              .filter(([_, amount]) => amount > 0)
+                              .map(([hwName, amount]) => (
+                              <div key={hwName}>{hwName}: {amount}</div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleLeaveProject(p.projectId);
+                        }}
+                        style={commonStyles.dangerButtonSmall}
+                        onMouseEnter={buttonHandlers.dangerSmallHover}
+                        onMouseLeave={buttonHandlers.dangerSmallLeave}
+                        aria-label={`Leave project ${p.projectName}`}
+                      >
+                        Leave
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         </div>
 
         {/* Checkout / Check-in */}
-        <div style={{
-          backgroundColor: '#1a1a1a',
-          padding: '24px',
-          border: '1px solid #333'
-        }}>
-          <h2 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 600, color: '#fff' }}>Hardware Operations</h2>
+        <div style={commonStyles.cardSmall}>
+          <h2 style={commonStyles.headingSmall}>Hardware Operations</h2>
           <p style={{ margin: '0 0 24px 0', fontSize: '13px', color: '#888' }}>Selected: <strong>{selectedProjectId || 'None'}</strong></p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
             <form onSubmit={handleCheckout} style={{
@@ -508,8 +482,9 @@ function MyUserPortal() {
               <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', fontWeight: 600, color: '#fff' }}>Checkout Hardware</h3>
               {['HWSet1', 'HWSet2'].map((hw) => (
                 <div key={hw} style={{ marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{hw}</label>
+                  <label style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }} htmlFor={`checkout-${hw}`}>{hw}</label>
                   <input
+                    id={`checkout-${hw}`}
                     type="number"
                     min="0"
                     value={checkoutRequest[hw]}
@@ -524,28 +499,22 @@ function MyUserPortal() {
                       outline: 'none',
                       transition: 'border-color 0.2s'
                     }}
-                    onFocus={(e) => e.target.style.borderColor = '#00d9ff'}
-                    onBlur={(e) => e.target.style.borderColor = '#333'}
+                    onFocus={inputHandlers.onFocus}
+                    onBlur={inputHandlers.onBlur}
+                    aria-label={`Checkout quantity for ${hw}`}
+                    disabled={loading.checkout || !selectedProjectId}
                   />
                 </div>
               ))}
               <button
                 type="submit"
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  backgroundColor: '#00d9ff',
-                  color: '#0a0a0a',
-                  border: 'none',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s'
-                }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = '#00c4e0'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = '#00d9ff'}
+                style={{ ...commonStyles.primaryButtonSmall, width: '100%' }}
+                onMouseEnter={buttonHandlers.primaryHover}
+                onMouseLeave={buttonHandlers.primaryLeave}
+                disabled={loading.checkout || !selectedProjectId}
+                aria-label="Checkout hardware"
               >
-                Checkout
+                {loading.checkout ? 'Processing...' : 'Checkout'}
               </button>
             </form>
 
@@ -557,8 +526,9 @@ function MyUserPortal() {
               <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', fontWeight: 600, color: '#fff' }}>Check-in Hardware</h3>
               {['HWSet1', 'HWSet2'].map((hw) => (
                 <div key={hw} style={{ marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{hw}</label>
+                  <label style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }} htmlFor={`checkin-${hw}`}>{hw}</label>
                   <input
+                    id={`checkin-${hw}`}
                     type="number"
                     min="0"
                     value={checkinRequest[hw]}
@@ -573,28 +543,22 @@ function MyUserPortal() {
                       outline: 'none',
                       transition: 'border-color 0.2s'
                     }}
-                    onFocus={(e) => e.target.style.borderColor = '#00d9ff'}
-                    onBlur={(e) => e.target.style.borderColor = '#333'}
+                    onFocus={inputHandlers.onFocus}
+                    onBlur={inputHandlers.onBlur}
+                    aria-label={`Check-in quantity for ${hw}`}
+                    disabled={loading.checkin || !selectedProjectId}
                   />
                 </div>
               ))}
               <button
                 type="submit"
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  backgroundColor: '#00d9ff',
-                  color: '#0a0a0a',
-                  border: 'none',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s'
-                }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = '#00c4e0'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = '#00d9ff'}
+                style={{ ...commonStyles.primaryButtonSmall, width: '100%' }}
+                onMouseEnter={buttonHandlers.primaryHover}
+                onMouseLeave={buttonHandlers.primaryLeave}
+                disabled={loading.checkin || !selectedProjectId}
+                aria-label="Check-in hardware"
               >
-                Check-in
+                {loading.checkin ? 'Processing...' : 'Check-in'}
               </button>
             </form>
           </div>

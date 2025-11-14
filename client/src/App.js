@@ -5,7 +5,6 @@ import MyRegistrationPage from './pages/MyRegistrationPage';
 import MyUserPortal from './pages/MyUserPortal';
 import ForgotPasswordPage from './pages/ForgotMyPassword';
 import Dashboard from './pages/Dashboard';
-import axios from 'axios';
 import './App.css';
 
 // Protected Route Component

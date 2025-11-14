@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { commonStyles, buttonHandlers } from '../styles/sharedStyles';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -39,16 +40,8 @@ function Dashboard() {
     };
     
     return (
-        <div style={{ minHeight: '100vh', backgroundColor: '#0a0a0a', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
-            <nav style={{
-                backgroundColor: '#1a1a1a',
-                color: '#fff',
-                padding: '16px 32px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                borderBottom: '1px solid #333'
-            }}>
+        <div style={commonStyles.pageContainer}>
+            <nav style={commonStyles.navBar}>
                 <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>Momentum SWELAB</h2>
                 <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                     {user ? (
@@ -56,18 +49,10 @@ function Dashboard() {
                             <span style={{ fontSize: '14px', color: '#bbb' }}>Welcome, <strong>{user.username}</strong></span>
                             <button
                                 onClick={() => navigate('/portal')}
-                                style={{
-                                    padding: '8px 16px',
-                                    backgroundColor: '#00d9ff',
-                                    color: '#0a0a0a',
-                                    border: 'none',
-                                    fontSize: '13px',
-                                    fontWeight: 600,
-                                    cursor: 'pointer',
-                                    transition: 'background-color 0.2s'
-                                }}
-                                onMouseEnter={(e) => e.target.style.backgroundColor = '#00c4e0'}
-                                onMouseLeave={(e) => e.target.style.backgroundColor = '#00d9ff'}
+                                style={commonStyles.primaryButtonSmall}
+                                onMouseEnter={buttonHandlers.primaryHover}
+                                onMouseLeave={buttonHandlers.primaryLeave}
+                                aria-label="Go to portal"
                             >
                                 Portal
                             </button>
@@ -76,47 +61,19 @@ function Dashboard() {
                         <>
                             <button
                                 onClick={() => navigate('/login')}
-                                style={{
-                                    padding: '8px 16px',
-                                    backgroundColor: 'transparent',
-                                    color: '#00d9ff',
-                                    border: '1px solid #00d9ff',
-                                    fontSize: '13px',
-                                    fontWeight: 600,
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s'
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.target.style.backgroundColor = '#00d9ff';
-                                    e.target.style.color = '#0a0a0a';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.target.style.backgroundColor = 'transparent';
-                                    e.target.style.color = '#00d9ff';
-                                }}
+                                style={commonStyles.secondaryButton}
+                                onMouseEnter={buttonHandlers.secondaryHover}
+                                onMouseLeave={buttonHandlers.secondaryLeave}
+                                aria-label="Login"
                             >
                                 Login
                             </button>
                             <button
                                 onClick={() => navigate('/register')}
-                                style={{
-                                    padding: '8px 16px',
-                                    backgroundColor: 'transparent',
-                                    color: '#888',
-                                    border: '1px solid #333',
-                                    fontSize: '13px',
-                                    fontWeight: 600,
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s'
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.target.style.borderColor = '#00d9ff';
-                                    e.target.style.color = '#00d9ff';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.target.style.borderColor = '#333';
-                                    e.target.style.color = '#888';
-                                }}
+                                style={commonStyles.tertiaryButton}
+                                onMouseEnter={buttonHandlers.tertiaryHover}
+                                onMouseLeave={buttonHandlers.tertiaryLeave}
+                                aria-label="Register"
                             >
                                 Register
                             </button>
@@ -143,20 +100,10 @@ function Dashboard() {
                     {!user && (
                         <button
                             onClick={() => navigate('/register')}
-                            style={{
-                                marginTop: '16px',
-                                padding: '12px 24px',
-                                backgroundColor: '#00d9ff',
-                                color: '#0a0a0a',
-                                border: 'none',
-                                fontSize: '14px',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                width: 'fit-content',
-                                transition: 'background-color 0.2s'
-                            }}
-                            onMouseEnter={(e) => e.target.style.backgroundColor = '#00c4e0'}
-                            onMouseLeave={(e) => e.target.style.backgroundColor = '#00d9ff'}
+                            style={{ ...commonStyles.primaryButton, marginTop: '16px', width: 'fit-content' }}
+                            onMouseEnter={buttonHandlers.primaryHover}
+                            onMouseLeave={buttonHandlers.primaryLeave}
+                            aria-label="Get started"
                         >
                             Get Started
                         </button>
