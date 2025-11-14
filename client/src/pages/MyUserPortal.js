@@ -35,7 +35,8 @@ function MyUserPortal() {
           projectId: p.projectId,
           projectName: p.projectName,
           description: p.description || '',
-          hwSets: p.hwSets || {}
+          hwSets: p.hwSets || {},
+          owner: p.owner || null
         }));
         setProjects(list);
       } else {
@@ -125,7 +126,7 @@ function MyUserPortal() {
       const res = await fetch(`${API_BASE}/create_project`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId, projectName, description }),
+        body: JSON.stringify({ projectId, projectName, description, username }),
       });
       const data = await res.json();
       if (data.success) {
@@ -187,27 +188,53 @@ function MyUserPortal() {
 
   // Leave project
   async function handleLeaveProject(projectId) {
-  try {
-    const res = await fetch(`${API_BASE}/remove_user_from_project`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, projectId }),
-    });
-    const data = await res.json();
-    if (data.success) {
-      if (selectedProjectId === projectId) {
-        setSelectedProjectId(null);
+    try {
+      const res = await fetch(`${API_BASE}/remove_user_from_project`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, projectId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (selectedProjectId === projectId) {
+          setSelectedProjectId(null);
+        }
+        // ensures that when user leaves the project also leaves the page
+        setMessage(`Left project ${projectId}`);
+        await fetchProjects();
+      } else {
+        setMessage(data.message || 'Error leaving project');
       }
-      // ensures that when user leaves the project also leaves the page
-      setMessage(`Left project ${projectId}`);
-      await fetchProjects();
-    } else {
-      setMessage(data.message || 'Error leaving project');
+    } catch (err) {
+      setMessage('Server error leaving project');
     }
-  } catch (err) {
-    setMessage('Server error leaving project');
   }
-}
+
+  // Delete project (only for owners)
+  async function handleDeleteProject(projectId, projectName) {
+    if (!window.confirm(`Are you sure you want to delete project "${projectName}"? This action cannot be undone.`)) {
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/delete_project`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, projectId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (selectedProjectId === projectId) {
+          setSelectedProjectId(null);
+        }
+        setMessage(`Project "${projectName}" deleted successfully`);
+        await fetchProjects();
+      } else {
+        setMessage(data.message || 'Error deleting project');
+      }
+    } catch (err) {
+      setMessage('Server error deleting project');
+    }
+  }
 
 
   async function handleCheckout(e) {
@@ -284,6 +311,15 @@ function MyUserPortal() {
         <h1 style={commonStyles.headerTitle}>Portal</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <span style={{ fontSize: '14px', color: '#bbb' }}>Signed in as <strong>{username}</strong></span>
+          <button
+            onClick={() => navigate('/account-settings')}
+            style={commonStyles.secondaryButton}
+            onMouseEnter={buttonHandlers.secondaryHover}
+            onMouseLeave={buttonHandlers.secondaryLeave}
+            aria-label="Account settings"
+          >
+            Account
+          </button>
           <button
             onClick={logout}
             style={commonStyles.dangerButton}
@@ -468,7 +504,14 @@ function MyUserPortal() {
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 600, color: '#fff', fontSize: '13px', marginBottom: '4px' }}>
                           {p.projectName}
-                          <div style={{ fontSize: '11px', color: '#888', fontWeight: 400, marginTop: '2px' }}>ID: {p.projectId}</div>
+                          <div style={{ fontSize: '11px', color: '#888', fontWeight: 400, marginTop: '2px' }}>
+                            ID: {p.projectId}
+                            {p.owner && (
+                              <span style={{ marginLeft: '8px', color: p.owner === username ? '#00d9ff' : '#888' }}>
+                                {p.owner === username ? '● Owner' : `Owner: ${p.owner}`}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div style={{ fontSize: '12px', color: '#888', marginBottom: '4px' }}>
                           {p.description}
@@ -483,18 +526,43 @@ function MyUserPortal() {
                           </div>
                         )}
                       </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleLeaveProject(p.projectId);
-                        }}
-                        style={commonStyles.dangerButtonSmall}
-                        onMouseEnter={buttonHandlers.dangerSmallHover}
-                        onMouseLeave={buttonHandlers.dangerSmallLeave}
-                        aria-label={`Leave project ${p.projectName}`}
-                      >
-                        Leave
-                      </button>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                        {p.owner === username && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteProject(p.projectId, p.projectName);
+                            }}
+                            style={{
+                              ...commonStyles.dangerButtonSmall,
+                              backgroundColor: '#8b0000',
+                              fontSize: '11px',
+                              padding: '4px 8px'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#a00000';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = '#8b0000';
+                            }}
+                            aria-label={`Delete project ${p.projectName}`}
+                          >
+                            Delete
+                          </button>
+                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleLeaveProject(p.projectId);
+                          }}
+                          style={commonStyles.dangerButtonSmall}
+                          onMouseEnter={buttonHandlers.dangerSmallHover}
+                          onMouseLeave={buttonHandlers.dangerSmallLeave}
+                          aria-label={`Leave project ${p.projectName}`}
+                        >
+                          Leave
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}

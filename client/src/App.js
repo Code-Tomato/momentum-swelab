@@ -6,6 +6,7 @@ import MyUserPortal from './pages/MyUserPortal';
 import ForgotPasswordPage from './pages/ForgotMyPassword';
 import ResetPasswordPage from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
+import AccountSettings from './pages/AccountSettings';
 import './App.css';
 
 // Protected Route Component
@@ -33,6 +34,14 @@ function App() {
           element={
             <ProtectedRoute>
               <MyUserPortal />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/account-settings"
+          element={
+            <ProtectedRoute>
+              <AccountSettings />
             </ProtectedRoute>
           }
         />

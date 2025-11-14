@@ -314,13 +314,14 @@ def create_project(client):
     projectName = data.get('projectName')
     projectId = data.get('projectId')
     description = data.get('description', '')
+    username = data.get('username')  # Get username for project owner
 
     # Validate required fields
     if not projectName or not projectId:
         return jsonify({'success': False, 'message': 'projectName and projectId are required'})
 
     # Attempt to create the project using the projectsDatabase module
-    result = projectsDatabase.createProject(client, projectName, projectId, description)
+    result = projectsDatabase.createProject(client, projectName, projectId, description, owner=username)
     return jsonify(result)
 
 # Route for getting project information
@@ -332,6 +333,34 @@ def get_project_info(client):
 
     # Fetch project information using the projectsDatabase module
     result = projectsDatabase.queryProject(client, projectId)
+    return jsonify(result)
+
+# Route for deleting a project
+@app.route('/delete_project', methods=['POST'])
+@db_utils.with_db_connection
+def delete_project(client):
+    """
+    Delete a project (only owner can delete).
+    
+    Request Body:
+        {
+            "projectId": str (required),
+            "username": str (required)
+        }
+    
+    Returns:
+        JSON response with success status.
+    """
+    data = request.get_json()
+    projectId = data.get('projectId')
+    username = data.get('username')
+
+    # Validate required fields
+    if not projectId or not username:
+        return jsonify({'success': False, 'message': 'projectId and username are required'})
+
+    # Attempt to delete the project using the projectsDatabase module
+    result = projectsDatabase.deleteProject(client, projectId, username)
     return jsonify(result)
 
 # Route for getting all hardware sets with details
@@ -582,6 +611,34 @@ def reset_password(client):
 
     # Update password in DB
     result = usersDatabase.updatePassword(client, email, new_password)
+    return jsonify(result)
+
+# Route for deleting a user account
+@app.route('/delete_account', methods=['POST'])
+@db_utils.with_db_connection
+def delete_account(client):
+    """
+    Delete a user account.
+    
+    Request Body:
+        {
+            "username": str (required),
+            "password": str (required)
+        }
+    
+    Returns:
+        JSON response with success status.
+    """
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+
+    # Validate required fields
+    if not username or not password:
+        return jsonify({'success': False, 'message': 'username and password are required'})
+
+    # Attempt to delete the account using the usersDatabase module
+    result = usersDatabase.deleteUser(client, username, password)
     return jsonify(result)
 
 # Main entry point for the application

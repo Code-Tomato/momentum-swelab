@@ -11,7 +11,8 @@ Project = {
     'projectId': projectId,
     'description': description,
     'hwSets': {HW1: 0, HW2: 10, ...},
-    'users': [user1, user2, ...]
+    'users': [user1, user2, ...],
+    'owner': username  # Username of the project owner/creator
 }
 '''
 
@@ -30,7 +31,7 @@ def queryProject(client, projectId):
         return {'success': False, 'message': 'Project not found'}
 
 # Function to create a new project
-def createProject(client, projectName, projectId, description):
+def createProject(client, projectName, projectId, description, owner=None):
     # Create a new project in the database
     db = db_utils.get_database(client)
     projects_collection = db['projects']
@@ -46,7 +47,8 @@ def createProject(client, projectName, projectId, description):
         'projectId': projectId,
         'description': description,
         'hwSets': {'HWSet1': 0, 'HWSet2': 0},  # Dictionary to store hardware usage
-        'users': []    # List of user IDs
+        'users': [],    # List of user IDs
+        'owner': owner  # Username of the project owner/creator
     }
     
     result = projects_collection.insert_one(project)
@@ -67,8 +69,10 @@ def addUser(client, projectId, username):
         return {'success': False, 'message': 'Project not found'}
     
     # Check if user is already in the project
-    if username in project['users']:
-        return {'success': False, 'message': 'User already in project'}
+    if username in project.get('users', []):
+        # User is already in project's users list - this is fine, just return success
+        # This handles the case where there was an orphaned reference that's being synced
+        return {'success': True, 'message': 'User already in project'}
     
     # Add user to project
     result = projects_collection.update_one(
@@ -204,4 +208,57 @@ def checkInHW(client, projectId, hwSetName, qty, username):
             return {'success': False, 'message': 'Hardware set not found'}
     else:
         return {'success': False, 'message': 'Failed to update project hardware usage'}
+
+# Function to delete a project
+def deleteProject(client, projectId, username):
+    # Delete a project (only owner can delete)
+    db = db_utils.get_database(client)
+    projects_collection = db['projects']
+    users_collection = db['users']
+    
+    # Check if project exists
+    project = projects_collection.find_one({'projectId': projectId})
+    if not project:
+        return {'success': False, 'message': 'Project not found'}
+    
+    # Check if user is the owner
+    # Handle legacy projects without owner field - allow deletion if user is in project
+    project_owner = project.get('owner')
+    if project_owner:
+        if project_owner != username:
+            return {'success': False, 'message': 'Only project owner can delete the project'}
+    else:
+        # Legacy project: check if user is in the project
+        if username not in project.get('users', []):
+            return {'success': False, 'message': 'You are not authorized to delete this project'}
+    
+    # Get all users in the project to remove project from their lists
+    project_users = project.get('users', [])
+    
+    # Remove project from all users' projects lists
+    for user in project_users:
+        users_collection.update_one(
+            {'username': user},
+            {'$pull': {'projects': projectId}}
+        )
+    
+    # Check in any checked-out hardware before deleting
+    import hardwareDatabase
+    hw_sets = project.get('hwSets', {})
+    for hw_set_name, checked_out_qty in hw_sets.items():
+        if checked_out_qty > 0:
+            # Check in the hardware
+            hw_query = hardwareDatabase.queryHardwareSet(client, hw_set_name)
+            if hw_query['success']:
+                current_availability = hw_query['data']['availability']
+                new_availability = current_availability + checked_out_qty
+                hardwareDatabase.updateAvailability(client, hw_set_name, new_availability)
+    
+    # Delete the project
+    result = projects_collection.delete_one({'projectId': projectId})
+    
+    if result.deleted_count > 0:
+        return {'success': True, 'message': 'Project deleted successfully'}
+    else:
+        return {'success': False, 'message': 'Failed to delete project'}
 

@@ -77,18 +77,38 @@ def login(client, username, password=None):
 # Function to add a user to a project
 def joinProject(client, username, projectId):
     # Add a user to a specified project
+    import projectsDatabase
     db = db_utils.get_database(client)
     users_collection = db['users']
+    projects_collection = db['projects']
     
     # Check if user exists
     user = users_collection.find_one({'username': username})
     if not user:
         return {'success': False, 'message': 'User not found'}
     
-    # Check if user is already in the project
-    if projectId in user['projects']:
+    # Check if project exists
+    project = projects_collection.find_one({'projectId': projectId})
+    if not project:
+        return {'success': False, 'message': 'Project not found'}
+    
+    # Check if user is already in the project (in user's projects list)
+    if projectId in user.get('projects', []):
         return {'success': False, 'message': 'User already in project'}
     
+    # Check for orphaned reference: user is in project's users list but not in user's projects list
+    if username in project.get('users', []):
+        # Sync the orphaned reference by adding project to user's projects list
+        result = users_collection.update_one(
+            {'username': username},
+            {'$push': {'projects': projectId}}
+        )
+        if result.modified_count > 0:
+            return {'success': True, 'message': 'Successfully synced orphaned project reference'}
+        else:
+            return {'success': False, 'message': 'Failed to sync orphaned project reference'}
+    
+    # Normal case: user is not in project, add them
     # Add project to user's projects list
     result = users_collection.update_one(
         {'username': username},
@@ -139,7 +159,8 @@ def getUserProjectsList(client, username):
                 "projectId": proj.get("projectId"),
                 "projectName": proj.get("projectName"),
                 "description": proj.get("description", ""),
-                "hwSets": proj.get("hwSets", {})   # shows the hardware sets
+                "hwSets": proj.get("hwSets", {}),   # shows the hardware sets
+                "owner": proj.get("owner")  # shows the project owner
             })
 
     return {"success": True, "projects": project_list}
@@ -199,3 +220,45 @@ def updatePassword(client, email, new_password):
     if result.modified_count == 1:
         return {'success': True, 'message': 'Password updated successfully'}
     return {'success': False, 'message': 'Failed to update password'}
+
+# Function to delete a user account
+def deleteUser(client, username, password):
+    # Delete a user account and all associated data
+    import projectsDatabase
+    db = db_utils.get_database(client)
+    users_collection = db['users']
+    projects_collection = db['projects']
+    
+    # Check if user exists and verify password
+    user = users_collection.find_one({'username': username})
+    if not user:
+        return {'success': False, 'message': 'User not found'}
+    
+    # Verify password
+    if not verify_password(password, user['password']):
+        return {'success': False, 'message': 'Invalid password'}
+    
+    # Get all projects where user is owner
+    user_projects = projects_collection.find({'owner': username})
+    owned_project_ids = [p['projectId'] for p in user_projects]
+    
+    # Delete all projects owned by the user
+    for project_id in owned_project_ids:
+        projectsDatabase.deleteProject(client, project_id, username)
+    
+    # Get all projects the user is a member of (but not owner)
+    user_project_list = user.get('projects', [])
+    member_projects = [pid for pid in user_project_list if pid not in owned_project_ids]
+    
+    # Remove user from all projects they're a member of (but not owner)
+    # This removes the user from the project's users list
+    for project_id in member_projects:
+        projectsDatabase.removeUser(client, project_id, username)
+    
+    # Delete the user document
+    result = users_collection.delete_one({'username': username})
+    
+    if result.deleted_count > 0:
+        return {'success': True, 'message': 'Account deleted successfully'}
+    else:
+        return {'success': False, 'message': 'Failed to delete account'}
