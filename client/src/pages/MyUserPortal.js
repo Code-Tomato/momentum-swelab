@@ -36,9 +36,10 @@ function MyUserPortal() {
     // Populate projects list
     if (data.success) {
       const list = (data.projects || data.data || []).map((p) => ({
-        projectId: p.projectId || p.id || p._id || '(no id)',
-        projectName: p.projectName || p.name ||'Unnamed Project',
-        description: p.description || p.desc || '',
+        projectId: p.projectId,
+        projectName: p.projectName,
+        description: p.description,
+        hwSets: p.hwSets || {}
       }));
       setProjects(list);
     } else {
@@ -59,7 +60,7 @@ function MyUserPortal() {
       if (data.success && data.data) {
         const hw = {};
         data.data.forEach((h) => {
-          hw[h.hwSetName] = { capacity: h.capacity, available: h.availablity };
+          hw[h.hwSetName] = { capacity: h.capacity, available: h.availability };
         });
         setGlobalHW(hw);
       }
@@ -246,9 +247,23 @@ function MyUserPortal() {
                     >
                       <div>
                         <div className="font-medium">
-                          {p.projectName} <small className="text-xs text-gray-500">({p.projectId})</small>
+                          {p.projectName} 
+                          <small className="text-xs text-gray-500">({p.projectId})</small>
                         </div>
-                        <div className="text-sm text-gray-600">{p.description}</div>
+
+                        <div className="text-sm text-gray-600">
+                          {p.description}
+                        </div>
+
+                        {p.hwSets && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            {Object.entries(p.hwSets).map(([hwName, amount]) => (
+                              <div key={hwName}>
+                                {hwName}: {amount}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <button
                         onClick={(e) => {
