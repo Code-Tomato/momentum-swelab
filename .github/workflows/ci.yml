@@ -54,9 +54,6 @@ jobs:
   lint-backend:
     name: Lint Backend
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./server
     
     steps:
       - name: Checkout repository
@@ -76,14 +73,12 @@ jobs:
         run: pip install flake8 pylint || echo "Linting tools optional"
 
       - name: Run flake8 (if available)
+        working-directory: ./server
         run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || echo "flake8 not required"
 
   test-backend:
     name: Test Backend
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./server
     
     steps:
       - name: Checkout repository
@@ -100,6 +95,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Test imports
+        working-directory: ./server
         run: python -c "import app; print('App imports successfully')" || echo "Import test completed"
 
   build-check:
