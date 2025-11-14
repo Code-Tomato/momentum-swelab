@@ -49,9 +49,18 @@ def addUser(client, username, email, password):
         result = users_collection.insert_one(user)
         return {'success': True, 'id': str(result.inserted_id)}
     except Exception as e:
-        # Check if it's a duplicate key error on userId index
-        if 'E11000' in str(e) and 'userId' in str(e):
-            return {'success': False, 'message': 'Database configuration error: Please remove the unique index on userId field. Contact administrator.'}
+        error_str = str(e)
+        # Check if it's a duplicate key error
+        if 'E11000' in error_str:
+            # Check if it's related to userId
+            if 'userId' in error_str:
+                return {'success': False, 'message': f'Database configuration error: Unique index on userId field exists. Error: {error_str}. Please run: python3 fix_userid_index.py'}
+            # Could be username or email duplicate
+            elif 'username' in error_str:
+                return {'success': False, 'message': 'Username already exists'}
+            elif 'email' in error_str:
+                return {'success': False, 'message': 'Email already registered'}
+        # Re-raise other exceptions
         raise
 
 # Helper function to query a user by username
