@@ -20,7 +20,9 @@ if not os.path.exists(static_folder_path):
     # Fallback: try relative path from server directory
     static_folder_path = '../client/build'
 
-app = Flask(__name__, static_folder=static_folder_path, static_url_path='/')
+# Don't use static_url_path='/' as it interferes with routing
+# We'll handle static files manually in the catch-all route
+app = Flask(__name__, static_folder=None)
 
 # Configure CORS to allow GitHub Pages and local development
 # Get allowed origins from environment or use defaults
@@ -39,8 +41,13 @@ CORS(app, resources={
 @app.errorhandler(404)
 def not_found(e):
     # Serve index.html for 404s so React Router can handle client-side routing
-    if os.path.exists(app.static_folder) and os.path.exists(os.path.join(app.static_folder, 'index.html')):
-        return send_from_directory(app.static_folder, 'index.html')
+    static_folder_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'client', 'build')
+    if not os.path.exists(static_folder_path):
+        static_folder_path = '../client/build'
+    
+    index_path = os.path.join(static_folder_path, 'index.html')
+    if os.path.exists(index_path):
+        return send_from_directory(static_folder_path, 'index.html')
     return jsonify({'error': 'Not found', 'message': 'The requested resource was not found.'}), 404
 
 # Health check route
@@ -646,15 +653,29 @@ def delete_account(client):
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve(path):
-    # For all frontend routes, serve index.html so React Router can handle routing
-    if not os.path.exists(app.static_folder) or not os.path.exists(os.path.join(app.static_folder, 'index.html')):
+    # Determine static folder path
+    static_folder_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'client', 'build')
+    if not os.path.exists(static_folder_path):
+        static_folder_path = '../client/build'
+    
+    # Check if this is a request for a static file (JS, CSS, images, etc.)
+    # React build puts files in /static/ subdirectory
+    if path:
+        # Try the path as-is (works for both root files and static/ subdirectory)
+        static_file_path = os.path.join(static_folder_path, path)
+        if os.path.exists(static_file_path) and os.path.isfile(static_file_path):
+            return send_from_directory(static_folder_path, path)
+    
+    # For all other routes (frontend routes), serve index.html so React Router can handle routing
+    index_path = os.path.join(static_folder_path, 'index.html')
+    if not os.path.exists(index_path):
         return jsonify({
             'error': 'Frontend not built',
             'message': 'The React app build folder is missing. Please ensure the frontend is built before deployment.',
-            'static_folder': app.static_folder
+            'static_folder': static_folder_path
         }), 503
     
-    return send_from_directory(app.static_folder, 'index.html')
+    return send_from_directory(static_folder_path, 'index.html')
 
 # Main entry point for the application
 if __name__ == '__main__':
