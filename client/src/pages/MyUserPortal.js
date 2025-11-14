@@ -257,7 +257,9 @@ function MyUserPortal() {
 
                         {p.hwSets && (
                           <div className="text-xs text-gray-500 mt-1">
-                            {Object.entries(p.hwSets).map(([hwName, amount]) => (
+                            {Object.entries(p.hwSets)
+                              .filter(([_, amount]) => amount > 0)
+                              .map(([hwName, amount]) => (
                               <div key={hwName}>
                                 {hwName}: {amount}
                               </div>
