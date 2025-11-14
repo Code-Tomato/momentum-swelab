@@ -390,6 +390,66 @@ def update_project_description(client):
     result = projectsDatabase.updateProjectDescription(client, projectId, description, username)
     return jsonify(result)
 
+# Route for updating project name
+@app.route('/update_project_name', methods=['POST'])
+@db_utils.with_db_connection
+def update_project_name(client):
+    """
+    Update the name of a project (only owner can update).
+    
+    Request Body:
+        {
+            "projectId": str (required),
+            "projectName": str (required),
+            "username": str (required)
+        }
+    
+    Returns:
+        JSON response with success status.
+    """
+    data = request.get_json()
+    projectId = data.get('projectId')
+    projectName = data.get('projectName')
+    username = data.get('username')
+
+    # Validate required fields
+    if not projectId or not projectName or not username:
+        return jsonify({'success': False, 'message': 'projectId, projectName, and username are required'})
+
+    # Attempt to update the project name using the projectsDatabase module
+    result = projectsDatabase.updateProjectName(client, projectId, projectName, username)
+    return jsonify(result)
+
+# Route for updating project ID
+@app.route('/update_project_id', methods=['POST'])
+@db_utils.with_db_connection
+def update_project_id(client):
+    """
+    Update the ID of a project (only owner can update).
+    
+    Request Body:
+        {
+            "oldProjectId": str (required),
+            "newProjectId": str (required),
+            "username": str (required)
+        }
+    
+    Returns:
+        JSON response with success status and new project ID.
+    """
+    data = request.get_json()
+    oldProjectId = data.get('oldProjectId')
+    newProjectId = data.get('newProjectId')
+    username = data.get('username')
+
+    # Validate required fields
+    if not oldProjectId or not newProjectId or not username:
+        return jsonify({'success': False, 'message': 'oldProjectId, newProjectId, and username are required'})
+
+    # Attempt to update the project ID using the projectsDatabase module
+    result = projectsDatabase.updateProjectId(client, oldProjectId, newProjectId, username)
+    return jsonify(result)
+
 # Route for inviting a user to a project
 @app.route('/invite_user_to_project', methods=['POST'])
 @db_utils.with_db_connection

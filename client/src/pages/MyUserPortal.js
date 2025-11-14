@@ -18,12 +18,16 @@ function MyUserPortal() {
   const [selectedProjectDetails, setSelectedProjectDetails] = useState(null);
   const [usageHistory, setUsageHistory] = useState([]);
   const [editingDescription, setEditingDescription] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [editingId, setEditingId] = useState(false);
   const [newDescription, setNewDescription] = useState('');
+  const [newProjectName, setNewProjectName] = useState('');
+  const [newProjectId, setNewProjectId] = useState('');
   const [inviteUsername, setInviteUsername] = useState('');
   const [checkoutRequest, setCheckoutRequest] = useState({});
   const [checkinRequest, setCheckinRequest] = useState({});
   const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState({ projects: false, hardware: false, create: false, join: false, checkout: false, checkin: false, projectDetails: false, updateDescription: false, invite: false, history: false });
+  const [loading, setLoading] = useState({ projects: false, hardware: false, create: false, join: false, checkout: false, checkin: false, projectDetails: false, updateDescription: false, updateName: false, updateId: false, invite: false, history: false });
 
   // Fetch user's projects
   const fetchProjects = useCallback(async () => {
@@ -112,6 +116,8 @@ function MyUserPortal() {
       if (data.success && data.data) {
         setSelectedProjectDetails(data.data);
         setNewDescription(data.data.description || '');
+        setNewProjectName(data.data.projectName || '');
+        setNewProjectId(data.data.projectId || '');
       }
     } catch (err) {
       setMessage('Error loading project details.');
@@ -174,6 +180,72 @@ function MyUserPortal() {
       setMessage('Server error updating description.');
     } finally {
       setLoading(prev => ({ ...prev, updateDescription: false }));
+    }
+  }
+
+  async function handleUpdateName(e) {
+    e.preventDefault();
+    if (!selectedProjectId || !selectedProjectDetails) return;
+    if (!newProjectName.trim()) {
+      setMessage('Project name cannot be empty');
+      return;
+    }
+    setLoading(prev => ({ ...prev, updateName: true }));
+    try {
+      const res = await fetch(`${API_BASE}/update_project_name`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: selectedProjectId, projectName: newProjectName.trim(), username }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessage('Project name updated successfully');
+        setEditingName(false);
+        await fetchProjectDetails();
+        await fetchProjects();
+      } else {
+        setMessage(data.message || 'Error updating project name');
+      }
+    } catch (err) {
+      setMessage('Server error updating project name.');
+    } finally {
+      setLoading(prev => ({ ...prev, updateName: false }));
+    }
+  }
+
+  async function handleUpdateId(e) {
+    e.preventDefault();
+    if (!selectedProjectId || !selectedProjectDetails) return;
+    if (!newProjectId.trim()) {
+      setMessage('Project ID cannot be empty');
+      return;
+    }
+    if (newProjectId.trim() === selectedProjectId) {
+      setMessage('Project ID unchanged');
+      setEditingId(false);
+      return;
+    }
+    setLoading(prev => ({ ...prev, updateId: true }));
+    try {
+      const res = await fetch(`${API_BASE}/update_project_id`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oldProjectId: selectedProjectId, newProjectId: newProjectId.trim(), username }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessage('Project ID updated successfully');
+        setEditingId(false);
+        setSelectedProjectId(data.newProjectId || newProjectId.trim());
+        await fetchProjectDetails();
+        await fetchProjects();
+      } else {
+        setMessage(data.message || 'Error updating project ID');
+      }
+    } catch (err) {
+      setMessage('Server error updating project ID.');
+    } finally {
+      setLoading(prev => ({ ...prev, updateId: false }));
     }
   }
 
@@ -902,12 +974,118 @@ function MyUserPortal() {
               ) : selectedProjectDetails ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <div>
-                    <div style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Project Name</div>
-                    <div style={{ fontSize: '14px', color: '#fff', fontWeight: 500 }}>{selectedProjectDetails.projectName}</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <div style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Project Name</div>
+                      {selectedProjectDetails.owner === username && (
+                        <button
+                          onClick={() => {
+                            setEditingName(!editingName);
+                            if (editingName) {
+                              setNewProjectName(selectedProjectDetails.projectName || '');
+                            }
+                          }}
+                          style={{
+                            padding: '4px 8px',
+                            fontSize: '11px',
+                            backgroundColor: 'transparent',
+                            color: '#00d9ff',
+                            border: '1px solid #00d9ff',
+                            borderRadius: '4px',
+                            cursor: 'pointer'
+                          }}
+                          aria-label={editingName ? 'Cancel edit' : 'Edit name'}
+                        >
+                          {editingName ? 'Cancel' : 'Edit'}
+                        </button>
+                      )}
+                    </div>
+                    {editingName && selectedProjectDetails.owner === username ? (
+                      <form onSubmit={handleUpdateName} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <input
+                          type="text"
+                          value={newProjectName}
+                          onChange={(e) => setNewProjectName(e.target.value)}
+                          style={{
+                            ...commonStyles.inputSmall,
+                            fontSize: '14px'
+                          }}
+                          onFocus={inputHandlers.onFocus}
+                          onBlur={inputHandlers.onBlur}
+                          aria-label="Project name"
+                          disabled={loading.updateName}
+                          required
+                        />
+                        <button
+                          type="submit"
+                          style={{ ...commonStyles.primaryButtonSmall, width: '100%' }}
+                          onMouseEnter={buttonHandlers.primaryHover}
+                          onMouseLeave={buttonHandlers.primaryLeave}
+                          disabled={loading.updateName}
+                          aria-label="Save name"
+                        >
+                          {loading.updateName ? 'Saving...' : 'Save'}
+                        </button>
+                      </form>
+                    ) : (
+                      <div style={{ fontSize: '14px', color: '#fff', fontWeight: 500 }}>{selectedProjectDetails.projectName}</div>
+                    )}
                   </div>
                   <div>
-                    <div style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Project ID</div>
-                    <div style={{ fontSize: '13px', color: '#888' }}>{selectedProjectDetails.projectId}</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <div style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Project ID</div>
+                      {selectedProjectDetails.owner === username && (
+                        <button
+                          onClick={() => {
+                            setEditingId(!editingId);
+                            if (editingId) {
+                              setNewProjectId(selectedProjectDetails.projectId || '');
+                            }
+                          }}
+                          style={{
+                            padding: '4px 8px',
+                            fontSize: '11px',
+                            backgroundColor: 'transparent',
+                            color: '#00d9ff',
+                            border: '1px solid #00d9ff',
+                            borderRadius: '4px',
+                            cursor: 'pointer'
+                          }}
+                          aria-label={editingId ? 'Cancel edit' : 'Edit ID'}
+                        >
+                          {editingId ? 'Cancel' : 'Edit'}
+                        </button>
+                      )}
+                    </div>
+                    {editingId && selectedProjectDetails.owner === username ? (
+                      <form onSubmit={handleUpdateId} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <input
+                          type="text"
+                          value={newProjectId}
+                          onChange={(e) => setNewProjectId(e.target.value)}
+                          style={{
+                            ...commonStyles.inputSmall,
+                            fontSize: '13px'
+                          }}
+                          onFocus={inputHandlers.onFocus}
+                          onBlur={inputHandlers.onBlur}
+                          aria-label="Project ID"
+                          disabled={loading.updateId}
+                          required
+                        />
+                        <button
+                          type="submit"
+                          style={{ ...commonStyles.primaryButtonSmall, width: '100%' }}
+                          onMouseEnter={buttonHandlers.primaryHover}
+                          onMouseLeave={buttonHandlers.primaryLeave}
+                          disabled={loading.updateId}
+                          aria-label="Save ID"
+                        >
+                          {loading.updateId ? 'Saving...' : 'Save'}
+                        </button>
+                      </form>
+                    ) : (
+                      <div style={{ fontSize: '13px', color: '#888' }}>{selectedProjectDetails.projectId}</div>
+                    )}
                   </div>
                   <div>
                     <div style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Owner</div>

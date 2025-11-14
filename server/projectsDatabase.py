@@ -327,6 +327,89 @@ def updateProjectDescription(client, projectId, newDescription, username):
     else:
         return {'success': False, 'message': 'Failed to update project description'}
 
+# Function to update project name
+def updateProjectName(client, projectId, newName, username):
+    # Update the name of a project (only owner can update)
+    db = db_utils.get_database(client)
+    projects_collection = db['projects']
+    
+    # Check if project exists
+    project = projects_collection.find_one({'projectId': projectId})
+    if not project:
+        return {'success': False, 'message': 'Project not found'}
+    
+    # Check if user is the owner
+    project_owner = project.get('owner')
+    if not project_owner or project_owner != username:
+        return {'success': False, 'message': 'Only project owner can update name'}
+    
+    # Validate new name
+    if not newName or not newName.strip():
+        return {'success': False, 'message': 'Project name cannot be empty'}
+    
+    # Update project name
+    result = projects_collection.update_one(
+        {'projectId': projectId},
+        {'$set': {'projectName': newName.strip()}}
+    )
+    
+    if result.modified_count > 0:
+        return {'success': True, 'message': 'Project name updated successfully'}
+    else:
+        return {'success': False, 'message': 'Failed to update project name'}
+
+# Function to update project ID
+def updateProjectId(client, oldProjectId, newProjectId, username):
+    # Update the ID of a project (only owner can update)
+    db = db_utils.get_database(client)
+    projects_collection = db['projects']
+    users_collection = db['users']
+    
+    # Check if project exists
+    project = projects_collection.find_one({'projectId': oldProjectId})
+    if not project:
+        return {'success': False, 'message': 'Project not found'}
+    
+    # Check if user is the owner
+    project_owner = project.get('owner')
+    if not project_owner or project_owner != username:
+        return {'success': False, 'message': 'Only project owner can update project ID'}
+    
+    # Validate new project ID
+    if not newProjectId or not newProjectId.strip():
+        return {'success': False, 'message': 'Project ID cannot be empty'}
+    
+    newProjectId = newProjectId.strip()
+    
+    # Check if new project ID already exists
+    existing = projects_collection.find_one({'projectId': newProjectId})
+    if existing:
+        return {'success': False, 'message': 'Project ID already exists'}
+    
+    # Update project ID in projects collection
+    result = projects_collection.update_one(
+        {'projectId': oldProjectId},
+        {'$set': {'projectId': newProjectId}}
+    )
+    
+    if result.modified_count > 0:
+        # Update project ID in all users' projects lists
+        project_users = project.get('users', [])
+        for user in project_users:
+            # Remove old project ID and add new one
+            users_collection.update_one(
+                {'username': user},
+                {'$pull': {'projects': oldProjectId}}
+            )
+            users_collection.update_one(
+                {'username': user},
+                {'$push': {'projects': newProjectId}}
+            )
+        
+        return {'success': True, 'message': 'Project ID updated successfully', 'newProjectId': newProjectId}
+    else:
+        return {'success': False, 'message': 'Failed to update project ID'}
+
 # Function to invite a user to a project (owner-initiated)
 def inviteUserToProject(client, projectId, inviteeUsername, inviterUsername):
     # Invite a user to join a project (only owner can invite)
