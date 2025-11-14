@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { commonStyles, inputHandlers, buttonHandlers } from '../styles/sharedStyles';
 
@@ -7,6 +7,8 @@ const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 function MyUserPortal() {
   const navigate = useNavigate();
   const username = sessionStorage.getItem('username');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   const [projects, setProjects] = useState([]);
   const [globalHW, setGlobalHW] = useState({ HWSet1: { capacity: 0, available: 0 }, HWSet2: { capacity: 0, available: 0 } });
@@ -296,9 +298,27 @@ function MyUserPortal() {
     }
   }
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    }
+
+    if (dropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [dropdownOpen]);
+
   function logout() {
     sessionStorage.removeItem('username');
     sessionStorage.removeItem('user');
+    setDropdownOpen(false);
     navigate('/login');
   }
 
@@ -310,25 +330,118 @@ function MyUserPortal() {
       <div style={commonStyles.header}>
         <h1 style={commonStyles.headerTitle}>Portal</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <span style={{ fontSize: '14px', color: '#bbb' }}>Signed in as <strong>{username}</strong></span>
           <button
-            onClick={() => navigate('/account-settings')}
-            style={commonStyles.secondaryButton}
-            onMouseEnter={buttonHandlers.secondaryHover}
-            onMouseLeave={buttonHandlers.secondaryLeave}
-            aria-label="Account settings"
+            onClick={() => navigate('/')}
+            style={commonStyles.primaryButtonSmall}
+            onMouseEnter={buttonHandlers.primaryHover}
+            onMouseLeave={buttonHandlers.primaryLeave}
+            aria-label="Go to home"
           >
-            Account
+            Home
           </button>
-          <button
-            onClick={logout}
-            style={commonStyles.dangerButton}
-            onMouseEnter={buttonHandlers.dangerHover}
-            onMouseLeave={buttonHandlers.dangerLeave}
-            aria-label="Logout"
+          <div 
+            ref={dropdownRef}
+            style={{ position: 'relative', display: 'inline-block' }}
           >
-            Logout
-          </button>
+            <button
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#252525',
+                color: '#fff',
+                border: '1px solid #333',
+                borderRadius: '4px',
+                fontSize: '14px',
+                fontWeight: 500,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#555';
+                e.currentTarget.style.backgroundColor = '#2a2a2a';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = '#333';
+                e.currentTarget.style.backgroundColor = '#252525';
+              }}
+              aria-label="User menu"
+              aria-expanded={dropdownOpen}
+            >
+              <span>{username}</span>
+              <span style={{ fontSize: '10px' }}>▼</span>
+            </button>
+            {dropdownOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: '8px',
+                  backgroundColor: '#1a1a1a',
+                  border: '1px solid #333',
+                  borderRadius: '4px',
+                  minWidth: '180px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                  zIndex: 1000,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden'
+                }}
+              >
+                <button
+                  onClick={() => {
+                    navigate('/account-settings');
+                    setDropdownOpen(false);
+                  }}
+                  style={{
+                    padding: '12px 16px',
+                    backgroundColor: 'transparent',
+                    color: '#fff',
+                    border: 'none',
+                    borderBottom: '1px solid #333',
+                    fontSize: '14px',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#252525';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                  aria-label="Account settings"
+                >
+                  ⚙️ Settings
+                </button>
+                <button
+                  onClick={logout}
+                  style={{
+                    padding: '12px 16px',
+                    backgroundColor: 'transparent',
+                    color: '#ff6b6b',
+                    border: 'none',
+                    fontSize: '14px',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#2a1a1a';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                  aria-label="Logout"
+                >
+                  🚪 Logout
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
