@@ -36,20 +36,9 @@ CORS(app, resources={
     }
 })
 
-# Serve React App
-@app.route('/')
-def serve():
-    if not os.path.exists(app.static_folder) or not os.path.exists(os.path.join(app.static_folder, 'index.html')):
-        return jsonify({
-            'error': 'Frontend not built',
-            'message': 'The React app build folder is missing. Please ensure the frontend is built before deployment.',
-            'static_folder': app.static_folder
-        }), 503
-    return send_from_directory(app.static_folder, 'index.html')
-
 @app.errorhandler(404)
 def not_found(e):
-    # Only serve index.html for 404s if the build folder exists
+    # Serve index.html for 404s so React Router can handle client-side routing
     if os.path.exists(app.static_folder) and os.path.exists(os.path.join(app.static_folder, 'index.html')):
         return send_from_directory(app.static_folder, 'index.html')
     return jsonify({'error': 'Not found', 'message': 'The requested resource was not found.'}), 404
@@ -651,6 +640,21 @@ def delete_account(client):
     # Attempt to delete the account using the usersDatabase module
     result = usersDatabase.deleteUser(client, username, password)
     return jsonify(result)
+
+# Serve React App - catch all routes that aren't API routes
+# This must be LAST so API routes are matched first
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    # For all frontend routes, serve index.html so React Router can handle routing
+    if not os.path.exists(app.static_folder) or not os.path.exists(os.path.join(app.static_folder, 'index.html')):
+        return jsonify({
+            'error': 'Frontend not built',
+            'message': 'The React app build folder is missing. Please ensure the frontend is built before deployment.',
+            'static_folder': app.static_folder
+        }), 503
+    
+    return send_from_directory(app.static_folder, 'index.html')
 
 # Main entry point for the application
 if __name__ == '__main__':
