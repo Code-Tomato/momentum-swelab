@@ -15,8 +15,12 @@ const ProtectedRoute = ({ children }) => {
 };
 
 function App() {
+  // Use basename for GitHub Pages subdirectory deployment
+  // PUBLIC_URL is automatically set by react-scripts based on homepage in package.json
+  const basename = process.env.PUBLIC_URL || '';
+  
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={basename}>
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/login" element={<MyLoginPage />} />
