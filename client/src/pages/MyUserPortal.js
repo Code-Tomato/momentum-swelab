@@ -15,10 +15,15 @@ function MyUserPortal() {
   const [createForm, setCreateForm] = useState({ projectId: '', projectName: '', description: '' });
   const [joinProjectId, setJoinProjectId] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState(null);
+  const [selectedProjectDetails, setSelectedProjectDetails] = useState(null);
+  const [usageHistory, setUsageHistory] = useState([]);
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [newDescription, setNewDescription] = useState('');
+  const [inviteUsername, setInviteUsername] = useState('');
   const [checkoutRequest, setCheckoutRequest] = useState({});
   const [checkinRequest, setCheckinRequest] = useState({});
   const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState({ projects: false, hardware: false, create: false, join: false, checkout: false, checkin: false });
+  const [loading, setLoading] = useState({ projects: false, hardware: false, create: false, join: false, checkout: false, checkin: false, projectDetails: false, updateDescription: false, invite: false, history: false });
 
   // Fetch user's projects
   const fetchProjects = useCallback(async () => {
@@ -93,6 +98,113 @@ function MyUserPortal() {
       clearInterval(projectsInterval);
     };
   }, [username, fetchProjects]);
+
+  const fetchProjectDetails = useCallback(async () => {
+    if (!selectedProjectId) return;
+    setLoading(prev => ({ ...prev, projectDetails: true }));
+    try {
+      const res = await fetch(`${API_BASE}/get_project_info`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: selectedProjectId }),
+      });
+      const data = await res.json();
+      if (data.success && data.data) {
+        setSelectedProjectDetails(data.data);
+        setNewDescription(data.data.description || '');
+      }
+    } catch (err) {
+      setMessage('Error loading project details.');
+    } finally {
+      setLoading(prev => ({ ...prev, projectDetails: false }));
+    }
+  }, [selectedProjectId]);
+
+  const fetchUsageHistory = useCallback(async () => {
+    if (!selectedProjectId) return;
+    setLoading(prev => ({ ...prev, history: true }));
+    try {
+      const res = await fetch(`${API_BASE}/get_project_usage_history`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: selectedProjectId, limit: 20 }),
+      });
+      const data = await res.json();
+      if (data.success && data.history) {
+        setUsageHistory(data.history);
+      }
+    } catch (err) {
+      // Silently fail for history - not critical
+    } finally {
+      setLoading(prev => ({ ...prev, history: false }));
+    }
+  }, [selectedProjectId]);
+
+  // Fetch project details and history when selected project changes
+  useEffect(() => {
+    if (selectedProjectId) {
+      fetchProjectDetails();
+      fetchUsageHistory();
+    } else {
+      setSelectedProjectDetails(null);
+      setUsageHistory([]);
+    }
+  }, [selectedProjectId, fetchProjectDetails, fetchUsageHistory]);
+
+  async function handleUpdateDescription(e) {
+    e.preventDefault();
+    if (!selectedProjectId || !selectedProjectDetails) return;
+    setLoading(prev => ({ ...prev, updateDescription: true }));
+    try {
+      const res = await fetch(`${API_BASE}/update_project_description`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: selectedProjectId, description: newDescription, username }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessage('Description updated successfully');
+        setEditingDescription(false);
+        await fetchProjectDetails();
+        await fetchProjects();
+      } else {
+        setMessage(data.message || 'Error updating description');
+      }
+    } catch (err) {
+      setMessage('Server error updating description.');
+    } finally {
+      setLoading(prev => ({ ...prev, updateDescription: false }));
+    }
+  }
+
+  async function handleInviteUser(e) {
+    e.preventDefault();
+    if (!selectedProjectId || !inviteUsername.trim()) {
+      setMessage('Enter a username to invite');
+      return;
+    }
+    setLoading(prev => ({ ...prev, invite: true }));
+    try {
+      const res = await fetch(`${API_BASE}/invite_user_to_project`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: selectedProjectId, inviteeUsername: inviteUsername.trim(), inviterUsername: username }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessage(`Successfully invited ${inviteUsername}`);
+        setInviteUsername('');
+        await fetchProjectDetails();
+        await fetchProjects();
+      } else {
+        setMessage(data.message || 'Error inviting user');
+      }
+    } catch (err) {
+      setMessage('Server error inviting user.');
+    } finally {
+      setLoading(prev => ({ ...prev, invite: false }));
+    }
+  }
   
   // Update checkout/checkin forms when hardware sets change (dynamic hardware support)
   useEffect(() => {
@@ -290,7 +402,7 @@ function MyUserPortal() {
           setCheckinRequest(clearedRequests);
         }
       }
-      await Promise.all([fetchHardware(), fetchProjects()]);
+      await Promise.all([fetchHardware(), fetchProjects(), fetchProjectDetails(), fetchUsageHistory()]);
     } catch (err) {
       setMessage('Error processing request. Please try again.');
     } finally {
@@ -776,6 +888,164 @@ function MyUserPortal() {
                 {loading.checkin ? 'Processing...' : 'Check-in'}
               </button>
             </form>
+
+            {/* Project Details Panel */}
+            <div style={{
+              padding: '20px',
+              backgroundColor: '#252525',
+              border: '1px solid #333',
+              minHeight: '300px'
+            }}>
+              <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', fontWeight: 600, color: '#fff' }}>Project Details</h3>
+              {loading.projectDetails ? (
+                <div style={{ fontSize: '13px', color: '#888', textAlign: 'center', padding: '20px' }}>Loading...</div>
+              ) : selectedProjectDetails ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div>
+                    <div style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Project Name</div>
+                    <div style={{ fontSize: '14px', color: '#fff', fontWeight: 500 }}>{selectedProjectDetails.projectName}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Project ID</div>
+                    <div style={{ fontSize: '13px', color: '#888' }}>{selectedProjectDetails.projectId}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Owner</div>
+                    <div style={{ fontSize: '13px', color: '#888' }}>{selectedProjectDetails.owner || 'Unknown'}</div>
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <div style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Description</div>
+                      {selectedProjectDetails.owner === username && (
+                        <button
+                          onClick={() => {
+                            setEditingDescription(!editingDescription);
+                            if (editingDescription) {
+                              setNewDescription(selectedProjectDetails.description || '');
+                            }
+                          }}
+                          style={{
+                            padding: '4px 8px',
+                            fontSize: '11px',
+                            backgroundColor: 'transparent',
+                            color: '#00d9ff',
+                            border: '1px solid #00d9ff',
+                            borderRadius: '4px',
+                            cursor: 'pointer'
+                          }}
+                          aria-label={editingDescription ? 'Cancel edit' : 'Edit description'}
+                        >
+                          {editingDescription ? 'Cancel' : 'Edit'}
+                        </button>
+                      )}
+                    </div>
+                    {editingDescription && selectedProjectDetails.owner === username ? (
+                      <form onSubmit={handleUpdateDescription} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <textarea
+                          value={newDescription}
+                          onChange={(e) => setNewDescription(e.target.value)}
+                          style={{
+                            ...commonStyles.textarea,
+                            fontSize: '13px',
+                            minHeight: '60px',
+                            padding: '8px'
+                          }}
+                          onFocus={inputHandlers.onFocus}
+                          onBlur={inputHandlers.onBlur}
+                          aria-label="Project description"
+                          disabled={loading.updateDescription}
+                        />
+                        <button
+                          type="submit"
+                          style={{ ...commonStyles.primaryButtonSmall, width: '100%' }}
+                          onMouseEnter={buttonHandlers.primaryHover}
+                          onMouseLeave={buttonHandlers.primaryLeave}
+                          disabled={loading.updateDescription}
+                          aria-label="Save description"
+                        >
+                          {loading.updateDescription ? 'Saving...' : 'Save'}
+                        </button>
+                      </form>
+                    ) : (
+                      <div style={{ fontSize: '13px', color: '#888', fontStyle: selectedProjectDetails.description ? 'normal' : 'italic' }}>
+                        {selectedProjectDetails.description || 'No description'}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Members ({selectedProjectDetails.users?.length || 0})</div>
+                    <div style={{ fontSize: '13px', color: '#888', display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                      {selectedProjectDetails.users && selectedProjectDetails.users.length > 0 ? (
+                        selectedProjectDetails.users.map((user, idx) => (
+                          <span key={idx} style={{ padding: '2px 6px', backgroundColor: '#1a1a1a', borderRadius: '4px' }}>{user}</span>
+                        ))
+                      ) : (
+                        <span>No members</span>
+                      )}
+                    </div>
+                  </div>
+                  {selectedProjectDetails.owner === username && (
+                    <div style={{ borderTop: '1px solid #333', paddingTop: '16px' }}>
+                      <div style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Invite User</div>
+                      <form onSubmit={handleInviteUser} style={{ display: 'flex', gap: '8px' }}>
+                        <input
+                          type="text"
+                          placeholder="Username"
+                          value={inviteUsername}
+                          onChange={(e) => setInviteUsername(e.target.value)}
+                          style={{
+                            ...commonStyles.inputSmall,
+                            flex: 1
+                          }}
+                          onFocus={inputHandlers.onFocus}
+                          onBlur={inputHandlers.onBlur}
+                          aria-label="Username to invite"
+                          disabled={loading.invite}
+                        />
+                        <button
+                          type="submit"
+                          style={commonStyles.primaryButtonSmall}
+                          onMouseEnter={buttonHandlers.primaryHover}
+                          onMouseLeave={buttonHandlers.primaryLeave}
+                          disabled={loading.invite}
+                          aria-label="Invite user"
+                        >
+                          {loading.invite ? '...' : 'Invite'}
+                        </button>
+                      </form>
+                    </div>
+                  )}
+                  <div style={{ borderTop: '1px solid #333', paddingTop: '16px' }}>
+                    <div style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Recent Usage History</div>
+                    {loading.history ? (
+                      <div style={{ fontSize: '12px', color: '#888' }}>Loading...</div>
+                    ) : usageHistory.length > 0 ? (
+                      <div style={{ maxHeight: '150px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {usageHistory.slice(0, 10).map((entry, idx) => (
+                          <div key={idx} style={{ fontSize: '11px', color: '#888', padding: '4px 8px', backgroundColor: '#1a1a1a', borderRadius: '4px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ color: entry.action === 'checkout' ? '#6bff6b' : '#ff6b6b', fontWeight: 600 }}>
+                                {entry.action === 'checkout' ? '✓' : '↩'} {entry.qty} {entry.hwSetName}
+                              </span>
+                              <span style={{ fontSize: '10px' }}>{entry.username}</span>
+                            </div>
+                            {entry.timestamp && (
+                              <div style={{ fontSize: '10px', color: '#666', marginTop: '2px' }}>
+                                {new Date(entry.timestamp).toLocaleString()}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '12px', color: '#888' }}>No usage history</div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ fontSize: '13px', color: '#888', textAlign: 'center', padding: '20px' }}>Select a project to view details</div>
+              )}
+            </div>
           </div>
         </div>
       </div>

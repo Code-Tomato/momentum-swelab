@@ -360,6 +360,94 @@ def delete_project(client):
     result = projectsDatabase.deleteProject(client, projectId, username)
     return jsonify(result)
 
+# Route for updating project description
+@app.route('/update_project_description', methods=['POST'])
+@db_utils.with_db_connection
+def update_project_description(client):
+    """
+    Update the description of a project (only owner can update).
+    
+    Request Body:
+        {
+            "projectId": str (required),
+            "description": str (required),
+            "username": str (required)
+        }
+    
+    Returns:
+        JSON response with success status.
+    """
+    data = request.get_json()
+    projectId = data.get('projectId')
+    description = data.get('description')
+    username = data.get('username')
+
+    # Validate required fields
+    if not projectId or description is None or not username:
+        return jsonify({'success': False, 'message': 'projectId, description, and username are required'})
+
+    # Attempt to update the project description using the projectsDatabase module
+    result = projectsDatabase.updateProjectDescription(client, projectId, description, username)
+    return jsonify(result)
+
+# Route for inviting a user to a project
+@app.route('/invite_user_to_project', methods=['POST'])
+@db_utils.with_db_connection
+def invite_user_to_project(client):
+    """
+    Invite a user to join a project (only owner can invite).
+    
+    Request Body:
+        {
+            "projectId": str (required),
+            "inviteeUsername": str (required),
+            "inviterUsername": str (required)
+        }
+    
+    Returns:
+        JSON response with success status.
+    """
+    data = request.get_json()
+    projectId = data.get('projectId')
+    inviteeUsername = data.get('inviteeUsername')
+    inviterUsername = data.get('inviterUsername')
+
+    # Validate required fields
+    if not projectId or not inviteeUsername or not inviterUsername:
+        return jsonify({'success': False, 'message': 'projectId, inviteeUsername, and inviterUsername are required'})
+
+    # Attempt to invite the user using the projectsDatabase module
+    result = projectsDatabase.inviteUserToProject(client, projectId, inviteeUsername, inviterUsername)
+    return jsonify(result)
+
+# Route for getting project usage history
+@app.route('/get_project_usage_history', methods=['POST'])
+@db_utils.with_db_connection
+def get_project_usage_history(client):
+    """
+    Get usage history for a project.
+    
+    Request Body:
+        {
+            "projectId": str (required),
+            "limit": int (optional, default 50)
+        }
+    
+    Returns:
+        JSON response with usage history.
+    """
+    data = request.get_json()
+    projectId = data.get('projectId')
+    limit = data.get('limit', 50)
+
+    # Validate required fields
+    if not projectId:
+        return jsonify({'success': False, 'message': 'projectId is required'})
+
+    # Attempt to get usage history using the projectsDatabase module
+    result = projectsDatabase.getProjectUsageHistory(client, projectId, limit)
+    return jsonify(result)
+
 # Route for getting all hardware sets with details
 @app.route('/get_all_hardware', methods=['GET'])
 @db_utils.with_db_connection

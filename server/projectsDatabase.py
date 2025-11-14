@@ -1,6 +1,7 @@
 # Import necessary libraries and modules
 from pymongo import MongoClient
 import db_utils
+from datetime import datetime
 
 # Note: Import hardwareDatabase when needed to avoid circular imports
 
@@ -13,6 +14,15 @@ Project = {
     'hwSets': {HW1: 0, HW2: 10, ...},
     'users': [user1, user2, ...],
     'owner': username  # Username of the project owner/creator
+    'usageHistory': [  # List of history entries
+        {
+            'timestamp': datetime,
+            'action': 'checkout' or 'checkin',
+            'hwSetName': str,
+            'qty': int,
+            'username': str
+        }
+    ]
 }
 '''
 
@@ -157,6 +167,8 @@ def checkOutHW(client, projectId, hwSetName, qty, username):
     )
     
     if result.modified_count > 0:
+        # Log history entry
+        addHistoryEntry(client, projectId, 'checkout', hwSetName, qty, username)
         return {'success': True, 'message': f'Successfully checked out {qty} units of {hwSetName}'}
     else:
         # If project update failed, we should return the hardware
@@ -201,6 +213,8 @@ def checkInHW(client, projectId, hwSetName, qty, username):
             new_availability = current_availability + qty
             hw_update = hardwareDatabase.updateAvailability(client, hwSetName, new_availability)
             if hw_update['success']:
+                # Log history entry
+                addHistoryEntry(client, projectId, 'checkin', hwSetName, qty, username)
                 return {'success': True, 'message': f'Successfully checked in {qty} units of {hwSetName}'}
             else:
                 return {'success': False, 'message': 'Failed to update hardware availability'}
@@ -285,4 +299,145 @@ def deleteProject(client, projectId, username):
         return {'success': True, 'message': 'Project deleted successfully'}
     else:
         return {'success': False, 'message': 'Failed to delete project'}
+
+# Function to update project description
+def updateProjectDescription(client, projectId, newDescription, username):
+    # Update the description of a project (only owner can update)
+    db = db_utils.get_database(client)
+    projects_collection = db['projects']
+    
+    # Check if project exists
+    project = projects_collection.find_one({'projectId': projectId})
+    if not project:
+        return {'success': False, 'message': 'Project not found'}
+    
+    # Check if user is the owner
+    project_owner = project.get('owner')
+    if not project_owner or project_owner != username:
+        return {'success': False, 'message': 'Only project owner can update description'}
+    
+    # Update description
+    result = projects_collection.update_one(
+        {'projectId': projectId},
+        {'$set': {'description': newDescription}}
+    )
+    
+    if result.modified_count > 0:
+        return {'success': True, 'message': 'Project description updated successfully'}
+    else:
+        return {'success': False, 'message': 'Failed to update project description'}
+
+# Function to invite a user to a project (owner-initiated)
+def inviteUserToProject(client, projectId, inviteeUsername, inviterUsername):
+    # Invite a user to join a project (only owner can invite)
+    import usersDatabase
+    
+    db = db_utils.get_database(client)
+    projects_collection = db['projects']
+    users_collection = db['users']
+    
+    # Check if project exists
+    project = projects_collection.find_one({'projectId': projectId})
+    if not project:
+        return {'success': False, 'message': 'Project not found'}
+    
+    # Check if inviter is the owner
+    project_owner = project.get('owner')
+    if not project_owner or project_owner != inviterUsername:
+        return {'success': False, 'message': 'Only project owner can invite users'}
+    
+    # Check if invitee exists
+    invitee = users_collection.find_one({'username': inviteeUsername})
+    if not invitee:
+        return {'success': False, 'message': 'User not found'}
+    
+    # Check if invitee is already in the project
+    if inviteeUsername in project.get('users', []):
+        return {'success': False, 'message': 'User is already in the project'}
+    
+    # Add user to project using existing addUser function
+    project_result = addUser(client, projectId, inviteeUsername)
+    if not project_result['success']:
+        return project_result
+    
+    # Add project to user's projects list
+    user_result = usersDatabase.joinProject(client, inviteeUsername, projectId)
+    if not user_result['success']:
+        # Rollback: remove user from project if adding to user's list failed
+        removeUser(client, projectId, inviteeUsername)
+        return user_result
+    
+    return {'success': True, 'message': f'Successfully invited {inviteeUsername} to the project'}
+
+# Function to add a history entry for hardware operations
+def addHistoryEntry(client, projectId, action, hwSetName, qty, username):
+    # Add a history entry for checkout/checkin operations
+    db = db_utils.get_database(client)
+    projects_collection = db['projects']
+    
+    # Check if project exists
+    project = projects_collection.find_one({'projectId': projectId})
+    if not project:
+        return {'success': False, 'message': 'Project not found'}
+    
+    # Create history entry
+    history_entry = {
+        'timestamp': datetime.utcnow(),
+        'action': action,  # 'checkout' or 'checkin'
+        'hwSetName': hwSetName,
+        'qty': qty,
+        'username': username
+    }
+    
+    # Initialize usageHistory if it doesn't exist
+    if 'usageHistory' not in project:
+        result = projects_collection.update_one(
+            {'projectId': projectId},
+            {'$set': {'usageHistory': []}}
+        )
+    
+    # Add history entry (keep last 100 entries)
+    result = projects_collection.update_one(
+        {'projectId': projectId},
+        {
+            '$push': {
+                'usageHistory': {
+                    '$each': [history_entry],
+                    '$slice': -100  # Keep only last 100 entries
+                }
+            }
+        }
+    )
+    
+    if result.modified_count > 0:
+        return {'success': True, 'message': 'History entry added'}
+    else:
+        return {'success': False, 'message': 'Failed to add history entry'}
+
+# Function to get project usage history
+def getProjectUsageHistory(client, projectId, limit=50):
+    # Get usage history for a project
+    db = db_utils.get_database(client)
+    projects_collection = db['projects']
+    
+    # Check if project exists
+    project = projects_collection.find_one({'projectId': projectId})
+    if not project:
+        return {'success': False, 'message': 'Project not found'}
+    
+    # Get history entries
+    history = project.get('usageHistory', [])
+    
+    # Sort by timestamp (most recent first) and limit
+    history_sorted = sorted(history, key=lambda x: x.get('timestamp', datetime.min), reverse=True)[:limit]
+    
+    # Convert datetime objects to ISO format strings for JSON serialization
+    history_formatted = []
+    for entry in history_sorted:
+        formatted_entry = entry.copy()
+        if 'timestamp' in formatted_entry and isinstance(formatted_entry['timestamp'], datetime):
+            formatted_entry['timestamp'] = formatted_entry['timestamp'].isoformat()
+        history_formatted.append(formatted_entry)
+    
+    return {'success': True, 'history': history_formatted}
 
