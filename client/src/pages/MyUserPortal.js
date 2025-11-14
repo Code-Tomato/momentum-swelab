@@ -13,8 +13,8 @@ function MyUserPortal() {
   const [createForm, setCreateForm] = useState({ projectId: '', projectName: '', description: '' });
   const [joinProjectId, setJoinProjectId] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState(null);
-  const [checkoutRequest, setCheckoutRequest] = useState({ HWSet1: 0, HWSet2: 0 });
-  const [checkinRequest, setCheckinRequest] = useState({ HWSet1: 0, HWSet2: 0 });
+  const [checkoutRequest, setCheckoutRequest] = useState({});
+  const [checkinRequest, setCheckinRequest] = useState({});
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState({ projects: false, hardware: false, create: false, join: false, checkout: false, checkin: false });
 
@@ -22,7 +22,43 @@ function MyUserPortal() {
     if (!userId) return;
     fetchProjects();
     fetchHardware();
+    
+    // Poll for hardware updates every 5 minutes (when page is open)
+    const hardwareInterval = setInterval(() => {
+      fetchHardware();
+    }, 300000); // 5 minutes = 300000 milliseconds
+    
+    // Poll for project updates every 5 minutes
+    const projectsInterval = setInterval(() => {
+      fetchProjects();
+    }, 300000); // 5 minutes = 300000 milliseconds
+    
+    return () => {
+      clearInterval(hardwareInterval);
+      clearInterval(projectsInterval);
+    };
   }, [userId]);
+  
+  // Update checkout/checkin forms when hardware sets change (dynamic hardware support)
+  useEffect(() => {
+    const hwKeys = Object.keys(globalHW);
+    if (hwKeys.length > 0) {
+      setCheckoutRequest(prev => {
+        const updated = { ...prev };
+        hwKeys.forEach(hw => {
+          if (!(hw in updated)) updated[hw] = 0;
+        });
+        return updated;
+      });
+      setCheckinRequest(prev => {
+        const updated = { ...prev };
+        hwKeys.forEach(hw => {
+          if (!(hw in updated)) updated[hw] = 0;
+        });
+        return updated;
+      });
+    }
+  }, [globalHW]);
 
   // Fetch user's projects
   async function fetchProjects() {
@@ -183,48 +219,52 @@ function MyUserPortal() {
   async function handleCheckout(e) {
     e.preventDefault();
     if (!selectedProjectId) return setMessage('Select a project');
-    const r1 = Number(checkoutRequest.HWSet1 || 0);
-    const r2 = Number(checkoutRequest.HWSet2 || 0);
-    await checkoutOrCheckin('check_out', r1, r2);
+    await checkoutOrCheckin('check_out', checkoutRequest);
   }
 
   async function handleCheckin(e) {
     e.preventDefault();
     if (!selectedProjectId) return setMessage('Select a project');
-    const r1 = Number(checkinRequest.HWSet1 || 0);
-    const r2 = Number(checkinRequest.HWSet2 || 0);
-    await checkoutOrCheckin('check_in', r1, r2);
+    await checkoutOrCheckin('check_in', checkinRequest);
   }
 
-  async function checkoutOrCheckin(endpoint, r1, r2) {
+  async function checkoutOrCheckin(endpoint, requests) {
     const loadingKey = endpoint === 'check_out' ? 'checkout' : 'checkin';
     setLoading(prev => ({ ...prev, [loadingKey]: true }));
     try {
-      const hwSets = [
-        { name: 'HWSet1', qty: r1 },
-        { name: 'HWSet2', qty: r2 },
-      ];
       const results = [];
-      for (const hw of hwSets) {
-        if (hw.qty > 0) {
+      // Process all hardware sets dynamically
+      for (const [hwName, qty] of Object.entries(requests)) {
+        const quantity = Number(qty || 0);
+        if (quantity > 0) {
           const res = await fetch(`${API_BASE}/${endpoint}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ projectId: selectedProjectId, hwSetName: hw.name, qty: hw.qty, userId }),
+            body: JSON.stringify({ projectId: selectedProjectId, hwSetName: hwName, qty: quantity, userId }),
           });
           const data = await res.json();
-          results.push({ hw: hw.name, success: data.success, message: data.message });
+          results.push({ hw: hwName, success: data.success, message: data.message });
         }
       }
+      
+      if (results.length === 0) {
+        setMessage('Please enter quantities to checkout/check-in');
+        setLoading(prev => ({ ...prev, [loadingKey]: false }));
+        return;
+      }
+      
       const failed = results.filter(r => !r.success);
       if (failed.length > 0) {
         setMessage(`Some operations failed: ${failed.map(f => `${f.hw}: ${f.message}`).join(', ')}`);
       } else {
         setMessage(endpoint === 'check_out' ? 'Checkout successful' : 'Check-in successful');
+        // Clear the request forms
+        const clearedRequests = {};
+        Object.keys(requests).forEach(key => { clearedRequests[key] = 0; });
         if (endpoint === 'check_out') {
-          setCheckoutRequest({ HWSet1: 0, HWSet2: 0 });
+          setCheckoutRequest(clearedRequests);
         } else {
-          setCheckinRequest({ HWSet1: 0, HWSet2: 0 });
+          setCheckinRequest(clearedRequests);
         }
       }
       await Promise.all([fetchHardware(), fetchProjects()]);
@@ -480,14 +520,14 @@ function MyUserPortal() {
               border: '1px solid #333'
             }}>
               <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', fontWeight: 600, color: '#fff' }}>Checkout Hardware</h3>
-              {['HWSet1', 'HWSet2'].map((hw) => (
+              {Object.keys(globalHW).map((hw) => (
                 <div key={hw} style={{ marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <label style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }} htmlFor={`checkout-${hw}`}>{hw}</label>
                   <input
                     id={`checkout-${hw}`}
                     type="number"
                     min="0"
-                    value={checkoutRequest[hw]}
+                    value={checkoutRequest[hw] || 0}
                     onChange={(e) => setCheckoutRequest({ ...checkoutRequest, [hw]: e.target.value })}
                     style={{
                       padding: '8px 12px',
@@ -524,14 +564,14 @@ function MyUserPortal() {
               border: '1px solid #333'
             }}>
               <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', fontWeight: 600, color: '#fff' }}>Check-in Hardware</h3>
-              {['HWSet1', 'HWSet2'].map((hw) => (
+              {Object.keys(globalHW).map((hw) => (
                 <div key={hw} style={{ marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <label style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }} htmlFor={`checkin-${hw}`}>{hw}</label>
                   <input
                     id={`checkin-${hw}`}
                     type="number"
                     min="0"
-                    value={checkinRequest[hw]}
+                    value={checkinRequest[hw] || 0}
                     onChange={(e) => setCheckinRequest({ ...checkinRequest, [hw]: e.target.value })}
                     style={{
                       padding: '8px 12px',
@@ -569,4 +609,5 @@ function MyUserPortal() {
 }
 
 export default MyUserPortal;
+
 
