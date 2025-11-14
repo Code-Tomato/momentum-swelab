@@ -189,125 +189,415 @@ function MyUserPortal() {
   if (!userId) return <Navigate to="/login" replace />;
 
   return (
-    <div className="p-4 max-w-5xl mx-auto">
-      <div className="flex justify-between mb-4">
-        <h1 className="text-2xl font-bold">User Portal</h1>
-        <div>
-          <span className="mr-4">Signed in as <strong>{userId} </strong></span>
-          <button onClick={logout} className="px-3 py-1 border rounded">Logout</button>
+    <div style={{ minHeight: '100vh', backgroundColor: '#0a0a0a', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+      {/* Header */}
+      <div style={{
+        backgroundColor: '#1a1a1a',
+        padding: '20px 32px',
+        borderBottom: '1px solid #333',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 600, color: '#fff' }}>Portal</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <span style={{ fontSize: '14px', color: '#bbb' }}>Signed in as <strong>{userId}</strong></span>
+          <button
+            onClick={logout}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: 'transparent',
+              color: '#ff6b6b',
+              border: '1px solid #5a2a2a',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.borderColor = '#ff6b6b';
+              e.target.style.backgroundColor = '#2a1a1a';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.borderColor = '#5a2a2a';
+              e.target.style.backgroundColor = 'transparent';
+            }}
+          >
+            Logout
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="col-span-1 bg-white p-4 rounded shadow">
-          <h2 className="font-semibold mb-2">Create Project</h2>
-          <form onSubmit={handleCreateProject} className="space-y-2">
-            <input placeholder="Project ID" value={createForm.projectId} onChange={(e) => setCreateForm({ ...createForm, projectId: e.target.value })} className="w-full p-2 border rounded" />
-            <input placeholder="Project Name" value={createForm.projectName} onChange={(e) => setCreateForm({ ...createForm, projectName: e.target.value })} className="w-full p-2 border rounded" />
-            <textarea placeholder="Description" value={createForm.description} onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })} className="w-full p-2 border rounded" />
-            <button type="submit" className="px-3 py-1 border rounded">Create</button>
-          </form>
-
-          <hr className="my-4" />
-
-          <h2 className="font-semibold mb-2">Join Project</h2>
-          <form onSubmit={handleJoinProject} className="flex gap-2">
-            <input placeholder="Existing Project ID" value={joinProjectId} onChange={(e) => setJoinProjectId(e.target.value)} className="flex-1 p-2 border rounded" />
-            <button type="submit" className="px-3 py-1 border rounded">Join</button>
-          </form>
-
-          {message && <div className="mt-3 p-2 bg-gray-100 rounded">{message}</div>}
-        </div>
-
-        <div className="col-span-1 bg-white p-4 rounded shadow">
-          <h2 className="font-semibold mb-2">Hardware Sets</h2>
-          <div className="space-y-3">
-            {Object.keys(globalHW).map((hw) => (
-              <div key={hw} className="p-2 border rounded">
-                <div className="flex justify-between"><strong>{hw}</strong><span>Capacity: {globalHW[hw].capacity}</span></div>
-                <div className="flex justify-between"><span>Available:</span><span>{globalHW[hw].available}</span></div>
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '32px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', marginBottom: '32px' }}>
+          {/* Create Project */}
+          <div style={{
+            backgroundColor: '#1a1a1a',
+            padding: '24px',
+            border: '1px solid #333'
+          }}>
+            <h2 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: 600, color: '#fff' }}>Create Project</h2>
+            <form onSubmit={handleCreateProject} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Project ID</label>
+                <input
+                  placeholder="unique-id"
+                  value={createForm.projectId}
+                  onChange={(e) => setCreateForm({ ...createForm, projectId: e.target.value })}
+                  style={{
+                    padding: '8px 12px',
+                    backgroundColor: '#252525',
+                    border: '1px solid #333',
+                    color: '#fff',
+                    fontSize: '13px',
+                    fontFamily: 'inherit',
+                    outline: 'none',
+                    transition: 'border-color 0.2s'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#00d9ff'}
+                  onBlur={(e) => e.target.style.borderColor = '#333'}
+                />
               </div>
-            ))}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Project Name</label>
+                <input
+                  placeholder="Project name"
+                  value={createForm.projectName}
+                  onChange={(e) => setCreateForm({ ...createForm, projectName: e.target.value })}
+                  style={{
+                    padding: '8px 12px',
+                    backgroundColor: '#252525',
+                    border: '1px solid #333',
+                    color: '#fff',
+                    fontSize: '13px',
+                    fontFamily: 'inherit',
+                    outline: 'none',
+                    transition: 'border-color 0.2s'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#00d9ff'}
+                  onBlur={(e) => e.target.style.borderColor = '#333'}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Description</label>
+                <textarea
+                  placeholder="Project description"
+                  value={createForm.description}
+                  onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+                  style={{
+                    padding: '8px 12px',
+                    backgroundColor: '#252525',
+                    border: '1px solid #333',
+                    color: '#fff',
+                    fontSize: '13px',
+                    fontFamily: 'inherit',
+                    outline: 'none',
+                    transition: 'border-color 0.2s',
+                    minHeight: '80px',
+                    resize: 'vertical'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#00d9ff'}
+                  onBlur={(e) => e.target.style.borderColor = '#333'}
+                />
+              </div>
+              <button
+                type="submit"
+                style={{
+                  padding: '8px 12px',
+                  backgroundColor: '#00d9ff',
+                  color: '#0a0a0a',
+                  border: 'none',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#00c4e0'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = '#00d9ff'}
+              >
+                Create
+              </button>
+            </form>
+
+            <div style={{ borderTop: '1px solid #333', margin: '16px 0', paddingTop: '16px' }}>
+              <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 600, color: '#fff' }}>Join Project</h3>
+              <form onSubmit={handleJoinProject} style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  placeholder="Project ID"
+                  value={joinProjectId}
+                  onChange={(e) => setJoinProjectId(e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: '8px 12px',
+                    backgroundColor: '#252525',
+                    border: '1px solid #333',
+                    color: '#fff',
+                    fontSize: '13px',
+                    fontFamily: 'inherit',
+                    outline: 'none',
+                    transition: 'border-color 0.2s'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#00d9ff'}
+                  onBlur={(e) => e.target.style.borderColor = '#333'}
+                />
+                <button
+                  type="submit"
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#00d9ff',
+                    color: '#0a0a0a',
+                    border: 'none',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#00c4e0'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = '#00d9ff'}
+                >
+                  Join
+                </button>
+              </form>
+            </div>
+
+            {message && (
+              <div style={{
+                marginTop: '16px',
+                padding: '12px',
+                backgroundColor: message.includes('Error') || message.includes('failed') ? '#2a1a1a' : '#1a2a1a',
+                border: `1px solid ${message.includes('Error') || message.includes('failed') ? '#5a2a2a' : '#2a5a2a'}`,
+                color: message.includes('Error') || message.includes('failed') ? '#ff6b6b' : '#6bff6b',
+                fontSize: '12px',
+                borderRadius: '2px'
+              }}>
+                {message}
+              </div>
+            )}
           </div>
-        </div>
 
-        <div className="col-span-1 bg-white p-4 rounded shadow">
-          <h2 className="font-semibold mb-2">Projects</h2>
-          <div className="space-y-3 max-h-96 overflow-auto">
-            {projects.length === 0 ? (
-              <div className="text-sm text-gray-500">No projects yet.</div>
-                ) : (
-                  projects.map((p) => (
-                    <div
-                      key={p.projectId}
-                      className={`p-2 border rounded flex justify-between items-center ${
-                        selectedProjectId === p.projectId ? 'bg-green-100' : 'hover:bg-gray-50'
-                      }`}
-                      onClick={() => setSelectedProjectId(p.projectId)}
-                    >
-                      <div>
-                        <div className="font-medium">
-                          {p.projectName} 
-                          <small className="text-xs text-gray-500">({p.projectId})</small>
-                        </div>
+          {/* Hardware Sets */}
+          <div style={{
+            backgroundColor: '#1a1a1a',
+            padding: '24px',
+            border: '1px solid #333'
+          }}>
+            <h2 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: 600, color: '#fff' }}>Hardware Inventory</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {Object.keys(globalHW).map((hw) => (
+                <div key={hw} style={{
+                  padding: '12px',
+                  backgroundColor: '#252525',
+                  border: '1px solid #333'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <strong style={{ color: '#fff', fontSize: '14px' }}>{hw}</strong>
+                    <span style={{ color: '#888', fontSize: '12px' }}>Cap: {globalHW[hw].capacity}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                    <span style={{ color: '#888' }}>Available</span>
+                    <span style={{ color: globalHW[hw].available > 0 ? '#6bff6b' : '#ff6b6b', fontWeight: 600 }}>{globalHW[hw].available}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
-                        <div className="text-sm text-gray-600">
-                          {p.description}
-                        </div>
-
-                        {p.hwSets && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            {Object.entries(p.hwSets)
-                              .filter(([_, amount]) => amount > 0)
-                              .map(([hwName, amount]) => (
-                              <div key={hwName}>
-                                {hwName}: {amount}
-                              </div>
-                            ))}
-                          </div>
-                        )}
+          {/* Projects List */}
+          <div style={{
+            backgroundColor: '#1a1a1a',
+            padding: '24px',
+            border: '1px solid #333'
+          }}>
+            <h2 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: 600, color: '#fff' }}>Your Projects</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '400px', overflowY: 'auto' }}>
+              {projects.length === 0 ? (
+                <div style={{ fontSize: '13px', color: '#888' }}>No projects yet.</div>
+              ) : (
+                projects.map((p) => (
+                  <div
+                    key={p.projectId}
+                    onClick={() => setSelectedProjectId(p.projectId)}
+                    style={{
+                      padding: '12px',
+                      backgroundColor: selectedProjectId === p.projectId ? '#252525' : 'transparent',
+                      border: `1px solid ${selectedProjectId === p.projectId ? '#00d9ff' : '#333'}`,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'flex-start',
+                      gap: '8px'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (selectedProjectId !== p.projectId) {
+                        e.currentTarget.style.borderColor = '#555';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (selectedProjectId !== p.projectId) {
+                        e.currentTarget.style.borderColor = '#333';
+                      }
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, color: '#fff', fontSize: '13px', marginBottom: '4px' }}>
+                        {p.projectName}
+                        <div style={{ fontSize: '11px', color: '#888', fontWeight: 400, marginTop: '2px' }}>ID: {p.projectId}</div>
                       </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleLeaveProject(p.projectId);
-                        }}
-                        className="px-2 py-1 border rounded text-xs bg-red-100 hover:bg-red-200"
-                      >
-                        Leave
-                      </button>
+                      <div style={{ fontSize: '12px', color: '#888', marginBottom: '4px' }}>
+                        {p.description}
+                      </div>
+                      {p.hwSets && Object.entries(p.hwSets).filter(([_, amount]) => amount > 0).length > 0 && (
+                        <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
+                          {Object.entries(p.hwSets)
+                            .filter(([_, amount]) => amount > 0)
+                            .map(([hwName, amount]) => (
+                            <div key={hwName}>{hwName}: {amount}</div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  ))
-                )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleLeaveProject(p.projectId);
+                      }}
+                      style={{
+                        padding: '6px 10px',
+                        backgroundColor: 'transparent',
+                        color: '#ff6b6b',
+                        border: '1px solid #5a2a2a',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        whiteSpace: 'nowrap'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.borderColor = '#ff6b6b';
+                        e.target.style.backgroundColor = '#2a1a1a';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.borderColor = '#5a2a2a';
+                        e.target.style.backgroundColor = 'transparent';
+                      }}
+                    >
+                      Leave
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="mt-6 bg-white rounded shadow p-4">
-        <h2 className="font-semibold mb-2">Checkout / Check-in</h2>
-        <div className="text-sm mb-2">Selected project: <strong>{selectedProjectId || 'None'}</strong></div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <form onSubmit={handleCheckout} className="p-3 border rounded">
-            <h3 className="font-medium mb-2">Checkout</h3>
-            {['HWSet1', 'HWSet2'].map((hw) => (
-              <div key={hw} className="mb-2">
-                <label className="block text-sm">{hw}</label>
-                <input type="number" min="0" value={checkoutRequest[hw]} onChange={(e) => setCheckoutRequest({ ...checkoutRequest, [hw]: e.target.value })} className="w-full p-2 border rounded" />
-              </div>
-            ))}
-            <button type="submit" className="px-3 py-1 border rounded">Checkout</button>
-          </form>
+        {/* Checkout / Check-in */}
+        <div style={{
+          backgroundColor: '#1a1a1a',
+          padding: '24px',
+          border: '1px solid #333'
+        }}>
+          <h2 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 600, color: '#fff' }}>Hardware Operations</h2>
+          <p style={{ margin: '0 0 24px 0', fontSize: '13px', color: '#888' }}>Selected: <strong>{selectedProjectId || 'None'}</strong></p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+            <form onSubmit={handleCheckout} style={{
+              padding: '20px',
+              backgroundColor: '#252525',
+              border: '1px solid #333'
+            }}>
+              <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', fontWeight: 600, color: '#fff' }}>Checkout Hardware</h3>
+              {['HWSet1', 'HWSet2'].map((hw) => (
+                <div key={hw} style={{ marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{hw}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={checkoutRequest[hw]}
+                    onChange={(e) => setCheckoutRequest({ ...checkoutRequest, [hw]: e.target.value })}
+                    style={{
+                      padding: '8px 12px',
+                      backgroundColor: '#1a1a1a',
+                      border: '1px solid #333',
+                      color: '#fff',
+                      fontSize: '13px',
+                      fontFamily: 'inherit',
+                      outline: 'none',
+                      transition: 'border-color 0.2s'
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#00d9ff'}
+                    onBlur={(e) => e.target.style.borderColor = '#333'}
+                  />
+                </div>
+              ))}
+              <button
+                type="submit"
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  backgroundColor: '#00d9ff',
+                  color: '#0a0a0a',
+                  border: 'none',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#00c4e0'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = '#00d9ff'}
+              >
+                Checkout
+              </button>
+            </form>
 
-          <form onSubmit={handleCheckin} className="p-3 border rounded">
-            <h3 className="font-medium mb-2">Check-in</h3>
-            {['HWSet1', 'HWSet2'].map((hw) => (
-              <div key={hw} className="mb-2">
-                <label className="block text-sm">{hw}</label>
-                <input type="number" min="0" value={checkinRequest[hw]} onChange={(e) => setCheckinRequest({ ...checkinRequest, [hw]: e.target.value })} className="w-full p-2 border rounded" />
-              </div>
-            ))}
-            <button type="submit" className="px-3 py-1 border rounded">Check-in</button>
-          </form>
+            <form onSubmit={handleCheckin} style={{
+              padding: '20px',
+              backgroundColor: '#252525',
+              border: '1px solid #333'
+            }}>
+              <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', fontWeight: 600, color: '#fff' }}>Check-in Hardware</h3>
+              {['HWSet1', 'HWSet2'].map((hw) => (
+                <div key={hw} style={{ marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '12px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{hw}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={checkinRequest[hw]}
+                    onChange={(e) => setCheckinRequest({ ...checkinRequest, [hw]: e.target.value })}
+                    style={{
+                      padding: '8px 12px',
+                      backgroundColor: '#1a1a1a',
+                      border: '1px solid #333',
+                      color: '#fff',
+                      fontSize: '13px',
+                      fontFamily: 'inherit',
+                      outline: 'none',
+                      transition: 'border-color 0.2s'
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#00d9ff'}
+                    onBlur={(e) => e.target.style.borderColor = '#333'}
+                  />
+                </div>
+              ))}
+              <button
+                type="submit"
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  backgroundColor: '#00d9ff',
+                  color: '#0a0a0a',
+                  border: 'none',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#00c4e0'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = '#00d9ff'}
+              >
+                Check-in
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </div>
@@ -315,3 +605,4 @@ function MyUserPortal() {
 }
 
 export default MyUserPortal;
+
