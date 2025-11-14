@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { HashRouter, Route, Routes, Navigate } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 import MyLoginPage from './pages/MyLoginPage';
 import MyRegistrationPage from './pages/MyRegistrationPage';
 import MyUserPortal from './pages/MyUserPortal';
@@ -15,7 +15,7 @@ const ProtectedRoute = ({ children }) => {
 
 function App() {
   return (
-    <HashRouter>
+    <BrowserRouter>
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/login" element={<MyLoginPage />} />
@@ -32,7 +32,7 @@ function App() {
         />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
-    </HashRouter>
+    </BrowserRouter>
   );
 }
 

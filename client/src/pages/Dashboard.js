@@ -14,8 +14,11 @@ function Dashboard() {
 
     useEffect(() => {
         checkHealth();
-        loadHardwareDetails();
-    }, []);
+        // Only load hardware details if user is logged in
+        if (user) {
+            loadHardwareDetails();
+        }
+    }, [user]);
 
     const checkHealth = async () => {
         try {
@@ -138,49 +141,51 @@ function Dashboard() {
                     )}
                 </div>
 
-                {/* Available Hardware */}
-                <div>
-                    <h3 style={{ margin: '0 0 24px 0', fontSize: '16px', fontWeight: 600, color: '#fff' }}>Available Hardware</h3>
-                    {hardwareSets.length > 0 ? (
-                        <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                            gap: '20px'
-                        }}>
-                            {hardwareSets.map((hw, index) => (
-                                <div
-                                    key={index}
-                                    style={{
-                                        padding: '24px',
-                                        backgroundColor: '#1a1a1a',
-                                        border: '1px solid #333',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        gap: '16px'
-                                    }}
-                                >
-                                    <h4 style={{ margin: 0, color: '#fff', fontSize: '16px', fontWeight: 600 }}>{hw.hwSetName}</h4>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                                            <span style={{ color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Capacity</span>
-                                            <span style={{ color: '#fff', fontWeight: 500 }}>{hw.capacity}</span>
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                                            <span style={{ color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Available</span>
-                                            <span style={{ color: hw.availability > 0 ? '#6bff6b' : '#ff6b6b', fontWeight: 600 }}>
-                                                {hw.availability}
-                                            </span>
+                {/* Available Hardware - Only visible to logged-in users */}
+                {user && (
+                    <div>
+                        <h3 style={{ margin: '0 0 24px 0', fontSize: '16px', fontWeight: 600, color: '#fff' }}>Available Hardware</h3>
+                        {hardwareSets.length > 0 ? (
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                                gap: '20px'
+                            }}>
+                                {hardwareSets.map((hw, index) => (
+                                    <div
+                                        key={index}
+                                        style={{
+                                            padding: '24px',
+                                            backgroundColor: '#1a1a1a',
+                                            border: '1px solid #333',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '16px'
+                                        }}
+                                    >
+                                        <h4 style={{ margin: 0, color: '#fff', fontSize: '16px', fontWeight: 600 }}>{hw.hwSetName}</h4>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                                <span style={{ color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Capacity</span>
+                                                <span style={{ color: '#fff', fontWeight: 500 }}>{hw.capacity}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                                <span style={{ color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Available</span>
+                                                <span style={{ color: hw.availability > 0 ? '#6bff6b' : '#ff6b6b', fontWeight: 600 }}>
+                                                    {hw.availability}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div style={{ backgroundColor: '#1a1a1a', padding: '24px', border: '1px solid #333', color: '#888', fontSize: '14px' }}>
-                            No hardware sets available at the moment.
-                        </div>
-                    )}
-                </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div style={{ backgroundColor: '#1a1a1a', padding: '24px', border: '1px solid #333', color: '#888', fontSize: '14px' }}>
+                                No hardware sets available at the moment.
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );
