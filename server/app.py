@@ -3,6 +3,10 @@ import os
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
+from itsdangerous import URLSafeTimedSerializer
+import smtplib
+from email.mime.text import MIMEText
+
 # Import custom modules for database interactions
 import usersDatabase
 import projectsDatabase
@@ -319,6 +323,69 @@ def check_inventory(client):
         project['_id'] = str(project['_id'])
     
     return jsonify({'success': True, 'data': projects})
+
+
+serializer = URLSafeTimedSerializer(os.environ.get("SECRET_KEY", "default-secret"))
+
+# forgot my password section
+def send_reset_email(email, token):
+    reset_link = f"{os.environ.get('FRONTEND_URL')}/reset-password/{token}"
+
+    msg = MIMEText(f"""
+        You requested a password reset.
+
+        Click the link below to reset your password:
+        {reset_link}
+
+        This link expires in 30 minutes.
+    """)
+    msg['Subject'] = 'Password Reset'
+    msg['From'] = os.environ['EMAIL_USER']
+    msg['To'] = email
+
+    with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+        smtp.login(os.environ['EMAIL_USER'], os.environ['EMAIL_PASS'])
+        smtp.send_message(msg)
+
+
+@app.route('/forgot-password', methods=['POST'])
+@db_utils.with_db_connection
+def forgot_password(client):
+    data = request.get_json()
+    email = data.get('email')
+
+    # Check if email exists in DB
+    user = usersDatabase.getUserByEmail(client, email)
+    if not user:
+        return jsonify({'success': True, 'message': 'If the email exists, a reset link has been sent.'})
+
+    # Create token
+    token = serializer.dumps(email)
+
+    # Send email
+    try:
+        send_reset_email(email, token)
+        return jsonify({'success': True, 'message': 'Reset link sent to your email.'})
+    except Exception as e:
+        print("Email error:", e)
+        return jsonify({'success': False, 'message': 'Failed to send email.'})
+    
+
+@app.route('/reset-password', methods=['POST'])
+@db_utils.with_db_connection
+def reset_password(client):
+    data = request.get_json()
+    token = data.get('token')
+    new_password = data.get('password')
+
+    try:
+        email = serializer.loads(token, max_age=1800)  # token expires in 30 minutes
+    except Exception:
+        return jsonify({'success': False, 'message': 'Invalid or expired token'})
+
+    # Update password in DB
+    result = usersDatabase.updatePassword(client, email, new_password)
+    return jsonify(result)
 
 # Main entry point for the application
 if __name__ == '__main__':
