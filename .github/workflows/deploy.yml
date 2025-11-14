@@ -34,6 +34,14 @@ jobs:
           REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL || 'https://YOUR_RENDER_SERVICE.onrender.com' }}
         run: npm run build
 
+      - name: Create 404.html for GitHub Pages SPA routing
+        working-directory: ./client
+        run: |
+          if [ -f "build/index.html" ]; then
+            cp build/index.html build/404.html
+            echo "Created 404.html for GitHub Pages routing"
+          fi
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 

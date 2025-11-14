@@ -22,6 +22,14 @@ echo "Building React app..."
 cd client
 npm ci
 npm run build
+
+# Create 404.html for GitHub Pages SPA routing
+# GitHub Pages will serve 404.html for unknown routes, allowing React Router to handle them
+if [ -f "build/index.html" ]; then
+    cp build/index.html build/404.html
+    echo "Created 404.html for GitHub Pages routing"
+fi
+
 cd ..
 
 # Install Python dependencies
