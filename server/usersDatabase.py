@@ -120,14 +120,28 @@ def leaveProject(client, userId, projectId):
 
 
 # Function to get the list of projects for a user
+# Fixing project naming the names weren't correctly being displayed on the front end
 def getUserProjectsList(client, userId):
-    # Get and return the list of projects a user is part of
     db = db_utils.get_database(client)
-    users_collection = db['users']
-    
-    user = users_collection.find_one({'userId': userId})
+    users = db['users']
+    projects = db['projects']
+
+    user = users.find_one({'userId': userId})
     if not user:
         return {'success': False, 'message': 'User not found'}
-    
-    return {'success': True, 'data': user['projects']}
+
+    project_ids = user.get('projects', [])
+
+    project_list = []
+    for pid in project_ids:
+        proj = projects.find_one({'projectId': pid})
+        if proj:
+            project_list.append({
+                "projectId": proj.get("projectId"),
+                "projectName": proj.get("projectName"),
+                "description": proj.get("description", "")
+            })
+
+    return {'success': True, 'projects': project_list}
+
 

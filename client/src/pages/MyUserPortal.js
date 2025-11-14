@@ -129,7 +129,7 @@ function MyUserPortal() {
       }
       // ensures that when user leaves the project also leaves the page
       setMessage(`Left project ${projectId}`);
-      await fetchProjects();
+      //await fetchProjects();
     } else {
       setMessage(data.message || 'Error leaving project');
     }
