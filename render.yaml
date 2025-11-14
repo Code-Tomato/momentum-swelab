@@ -2,7 +2,7 @@ services:
   - type: web
     name: momentum-swelab-backend
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: chmod +x build.sh && ./build.sh
     startCommand: gunicorn --chdir server app:app
     envVars:
       - key: MONGODB_URI
@@ -14,4 +14,6 @@ services:
           property: port
       - key: PYTHON_VERSION
         value: 3.11.0
+      - key: REACT_APP_API_URL
+        value: https://momentum-swelab-backend.onrender.com
 

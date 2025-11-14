@@ -14,7 +14,13 @@ import hardwareDatabase
 import db_utils
 
 # Initialize a new Flask web application
-app = Flask(__name__, static_folder='../client/build', static_url_path='/')
+# Determine static folder path - works for both local dev and Render deployment
+static_folder_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'client', 'build')
+if not os.path.exists(static_folder_path):
+    # Fallback: try relative path from server directory
+    static_folder_path = '../client/build'
+
+app = Flask(__name__, static_folder=static_folder_path, static_url_path='/')
 
 # Configure CORS to allow GitHub Pages and local development
 # Get allowed origins from environment or use defaults
@@ -33,11 +39,20 @@ CORS(app, resources={
 # Serve React App
 @app.route('/')
 def serve():
+    if not os.path.exists(app.static_folder) or not os.path.exists(os.path.join(app.static_folder, 'index.html')):
+        return jsonify({
+            'error': 'Frontend not built',
+            'message': 'The React app build folder is missing. Please ensure the frontend is built before deployment.',
+            'static_folder': app.static_folder
+        }), 503
     return send_from_directory(app.static_folder, 'index.html')
 
 @app.errorhandler(404)
 def not_found(e):
-    return send_from_directory(app.static_folder, 'index.html')
+    # Only serve index.html for 404s if the build folder exists
+    if os.path.exists(app.static_folder) and os.path.exists(os.path.join(app.static_folder, 'index.html')):
+        return send_from_directory(app.static_folder, 'index.html')
+    return jsonify({'error': 'Not found', 'message': 'The requested resource was not found.'}), 404
 
 # Health check route
 @app.route('/health', methods=['GET'])
