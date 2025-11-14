@@ -59,7 +59,7 @@ function MyUserPortal() {
       if (data.success && data.data) {
         const hw = {};
         data.data.forEach((h) => {
-          hw[h.hwSetName] = { capacity: h.capacity, available: h.available };
+          hw[h.hwSetName] = { capacity: h.capacity, available: h.availablity };
         });
         setGlobalHW(hw);
       }
@@ -129,7 +129,7 @@ function MyUserPortal() {
       }
       // ensures that when user leaves the project also leaves the page
       setMessage(`Left project ${projectId}`);
-      //await fetchProjects();
+      await fetchProjects();
     } else {
       setMessage(data.message || 'Error leaving project');
     }

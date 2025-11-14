@@ -45,7 +45,7 @@ def createProject(client, projectName, projectId, description):
         'projectName': projectName,
         'projectId': projectId,
         'description': description,
-        'hwSets': {'HWSet1:' : 0, 'HWSet2': 0},  # Dictionary to store hardware usage
+        'hwSets': {'HWSet1' : 0, 'HWSet2': 0},  # Dictionary to store hardware usage
         'users': []    # List of user IDs
     }
     
