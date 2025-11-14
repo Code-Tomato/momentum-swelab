@@ -44,8 +44,8 @@ function MyLoginPage() {
     try {
       const response = await axios.post(`${API_BASE_URL}/login`, form);
       if (response.data.success) {
-        const userId = response.data.userId || response.data.user_data?.userId || form.username;
-        sessionStorage.setItem('userId', userId);
+        const username = response.data.user_data?.username || form.username;
+        sessionStorage.setItem('username', username);
         sessionStorage.setItem('user', JSON.stringify(response.data.user_data || {}));
         navigate('/portal');
       } else {

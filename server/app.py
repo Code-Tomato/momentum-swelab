@@ -88,7 +88,11 @@ def login(client):
         {
             "success": true,
             "message": "Login successful",
-            "userId": "john"
+            "user_data": {
+                "username": "john",
+                "email": "john@example.com",
+                "projects": []
+            }
         }
         
     Status Codes:
@@ -112,10 +116,10 @@ def login(client):
 @app.route('/main')
 @db_utils.with_db_connection
 def mainPage(client):
-    userId = request.args.get('userId')
+    username = request.args.get('username')
     
     # Fetch user projects using the usersDatabase module
-    result = usersDatabase.getUserProjectsList(client, userId)
+    result = usersDatabase.getUserProjectsList(client, username)
     return jsonify(result)
 
 # Route for joining a project
@@ -123,23 +127,23 @@ def mainPage(client):
 @db_utils.with_db_connection
 def join_project(client):
     data = request.get_json()
-    userId = data.get('userId')
+    username = data.get('username')
     projectId = data.get('projectId')
 
     # Validate required fields
-    if not userId or not projectId:
-        return jsonify({'success': False, 'message': 'userId and projectId are required'})
+    if not username or not projectId:
+        return jsonify({'success': False, 'message': 'username and projectId are required'})
 
     # Attempt to join the project using the usersDatabase module
-    user_result = usersDatabase.joinProject(client, userId, projectId)
+    user_result = usersDatabase.joinProject(client, username, projectId)
     if user_result['success']:
         # Also add user to project in projects collection
-        project_result = projectsDatabase.addUser(client, projectId, userId)
+        project_result = projectsDatabase.addUser(client, projectId, username)
         if project_result['success']:
             return jsonify({'success': True, 'message': 'Successfully joined project'})
         else:
             # Rollback: remove user from user's project list if project add failed
-            usersDatabase.leaveProject(client, userId, projectId)
+            usersDatabase.leaveProject(client, username, projectId)
             return jsonify(project_result)
     else:
         return jsonify(user_result)
@@ -149,16 +153,16 @@ def join_project(client):
 @db_utils.with_db_connection
 def remove_user_from_project(client):
     data = request.get_json()
-    userId = data.get('userId')
+    username = data.get('username')
     projectId = data.get('projectId')
     
     # Validate required fields
-    if not userId or not projectId:
-        return jsonify({'success': False, 'message': 'userId and projectId are required'})
+    if not username or not projectId:
+        return jsonify({'success': False, 'message': 'username and projectId are required'})
     
     # remove user from both user and project collections
-    user_result = usersDatabase.leaveProject(client, userId, projectId)
-    project_result = projectsDatabase.removeUser(client, projectId, userId)
+    user_result = usersDatabase.leaveProject(client, username, projectId)
+    project_result = projectsDatabase.removeUser(client, projectId, username)
     
     # Check if both operations succeeded
     if user_result['success'] and project_result['success']:
@@ -219,13 +223,10 @@ def register(client):
     # Username validation
     if len(username) < 3:
         return jsonify({'success': False, 'message': 'Username must be at least 3 characters long'})
-
-    # Use email as userId (or you could generate a unique ID)
-    userId = email.split('@')[0]  # Use email prefix as userId, or use email itself
     
     # Attempt to add the user using the usersDatabase module
     # Database will check for username uniqueness
-    result = usersDatabase.addUser(client, username, email, userId, password)
+    result = usersDatabase.addUser(client, username, email, password)
     return jsonify(result)
 
 # Route for adding a new user (legacy/API endpoint)
@@ -235,19 +236,14 @@ def add_user(client):
     data = request.get_json()
     username = data.get('username')
     email = data.get('email')
-    userId = data.get('userId')
     password = data.get('password')
 
     # Validate required fields
     if not username or not email or not password:
         return jsonify({'success': False, 'message': 'Username, email, and password are required'})
 
-    # If userId not provided, derive from email
-    if not userId:
-        userId = email.split('@')[0]
-
     # Attempt to add the user using the usersDatabase module
-    result = usersDatabase.addUser(client, username, email, userId, password)
+    result = usersDatabase.addUser(client, username, email, password)
     return jsonify(result)
 
 # Route for getting the list of user projects
@@ -255,14 +251,14 @@ def add_user(client):
 @db_utils.with_db_connection
 def get_user_projects_list(client):
     data = request.get_json()
-    userId = data.get('userId')
+    username = data.get('username')
 
     # Validate required fields
-    if not userId:
-        return jsonify({'success': False, 'message': 'userId is required'})
+    if not username:
+        return jsonify({'success': False, 'message': 'username is required'})
 
     # Fetch the user's projects using the usersDatabase module
-    result = usersDatabase.getUserProjectsList(client, userId)
+    result = usersDatabase.getUserProjectsList(client, username)
     return jsonify(result)
 
 # Route for creating a new project
@@ -362,7 +358,7 @@ def check_out(client):
             "projectId": str (required),
             "hwSetName": str (required),
             "qty": int (required, must be positive),
-            "userId": str (required)
+            "username": str (required)
         }
     
     Returns:
@@ -373,7 +369,7 @@ def check_out(client):
             "projectId": "ML-2024-001",
             "hwSetName": "HWSet1",
             "qty": 5,
-            "userId": "john"
+            "username": "john"
         }
         
     Example Response:
@@ -391,11 +387,11 @@ def check_out(client):
     projectId = data.get('projectId')
     hwSetName = data.get('hwSetName')
     qty = data.get('qty')
-    userId = data.get('userId')
+    username = data.get('username')
 
     # Validate required fields
-    if not projectId or not hwSetName or qty is None or not userId:
-        return jsonify({'success': False, 'message': 'projectId, hwSetName, qty, and userId are required'})
+    if not projectId or not hwSetName or qty is None or not username:
+        return jsonify({'success': False, 'message': 'projectId, hwSetName, qty, and username are required'})
     
     # Validate qty is numeric and positive
     try:
@@ -406,7 +402,7 @@ def check_out(client):
         return jsonify({'success': False, 'message': 'qty must be a valid number'})
 
     # Attempt to check out the hardware using the projectsDatabase module
-    result = projectsDatabase.checkOutHW(client, projectId, hwSetName, qty, userId)
+    result = projectsDatabase.checkOutHW(client, projectId, hwSetName, qty, username)
     return jsonify(result)
 
 # Route for checking in hardware
@@ -421,7 +417,7 @@ def check_in(client):
             "projectId": str (required),
             "hwSetName": str (required),
             "qty": int (required, must be positive),
-            "userId": str (required)
+            "username": str (required)
         }
     
     Returns:
@@ -432,7 +428,7 @@ def check_in(client):
             "projectId": "ML-2024-001",
             "hwSetName": "HWSet1",
             "qty": 3,
-            "userId": "john"
+            "username": "john"
         }
         
     Example Response:
@@ -450,11 +446,11 @@ def check_in(client):
     projectId = data.get('projectId')
     hwSetName = data.get('hwSetName')
     qty = data.get('qty')
-    userId = data.get('userId')
+    username = data.get('username')
 
     # Validate required fields
-    if not projectId or not hwSetName or qty is None or not userId:
-        return jsonify({'success': False, 'message': 'projectId, hwSetName, qty, and userId are required'})
+    if not projectId or not hwSetName or qty is None or not username:
+        return jsonify({'success': False, 'message': 'projectId, hwSetName, qty, and username are required'})
     
     # Validate qty is numeric and positive
     try:
@@ -465,7 +461,7 @@ def check_in(client):
         return jsonify({'success': False, 'message': 'qty must be a valid number'})
 
     # Attempt to check in the hardware using the projectsDatabase module
-    result = projectsDatabase.checkInHW(client, projectId, hwSetName, qty, userId)
+    result = projectsDatabase.checkInHW(client, projectId, hwSetName, qty, username)
     return jsonify(result)
 
 # Route for creating a new hardware set

@@ -56,7 +56,7 @@ def createProject(client, projectName, projectId, description):
     return {'success': True, 'project': created, 'message': 'Project created successfully'}
 
 # Function to add a user to a project
-def addUser(client, projectId, userId):
+def addUser(client, projectId, username):
     # Add a user to the specified project
     db = db_utils.get_database(client)
     projects_collection = db['projects']
@@ -67,13 +67,13 @@ def addUser(client, projectId, userId):
         return {'success': False, 'message': 'Project not found'}
     
     # Check if user is already in the project
-    if userId in project['users']:
+    if username in project['users']:
         return {'success': False, 'message': 'User already in project'}
     
     # Add user to project
     result = projects_collection.update_one(
         {'projectId': projectId},
-        {'$push': {'users': userId}}
+        {'$push': {'users': username}}
     )
     
     if result.modified_count > 0:
@@ -82,14 +82,14 @@ def addUser(client, projectId, userId):
         return {'success': False, 'message': 'Failed to add user to project'}
 
 # remove user from project
-def removeUser(client, projectId, userId):
+def removeUser(client, projectId, username):
     # Remove a user from the specified project
     db = db_utils.get_database(client)
     projects_collection = db['projects']
     
     result = projects_collection.update_one(
         {'projectId': projectId},
-        {'$pull': {'users': userId}}
+        {'$pull': {'users': username}}
     )
     
     if result.modified_count > 0:
@@ -122,7 +122,7 @@ def updateUsage(client, projectId, hwSetName):
     return {'success': True, 'message': 'Hardware set already exists in project'}
 
 # Function to check out hardware for a project
-def checkOutHW(client, projectId, hwSetName, qty, userId):
+def checkOutHW(client, projectId, hwSetName, qty, username):
     # Check out hardware for the specified project and update availability
     import hardwareDatabase
     
@@ -135,7 +135,7 @@ def checkOutHW(client, projectId, hwSetName, qty, userId):
         return {'success': False, 'message': 'Project not found'}
     
     # Check if user is part of the project
-    if userId not in project['users']:
+    if username not in project['users']:
         return {'success': False, 'message': 'User not authorized for this project'}
     
     # Try to request hardware from the hardware database
@@ -160,7 +160,7 @@ def checkOutHW(client, projectId, hwSetName, qty, userId):
         return {'success': False, 'message': 'Failed to update project hardware usage'}
 
 # Function to check in hardware for a project
-def checkInHW(client, projectId, hwSetName, qty, userId):
+def checkInHW(client, projectId, hwSetName, qty, username):
     # Check in hardware for the specified project and update availability
     import hardwareDatabase
     
@@ -173,7 +173,7 @@ def checkInHW(client, projectId, hwSetName, qty, userId):
         return {'success': False, 'message': 'Project not found'}
     
     # Check if user is part of the project
-    if userId not in project['users']:
+    if username not in project['users']:
         return {'success': False, 'message': 'User not authorized for this project'}
     
     # Check if project has this hardware checked out

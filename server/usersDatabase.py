@@ -9,7 +9,6 @@ import db_utils
 Structure of User entry:
 User = {
     'username': username,
-    'userId': userId,
     'email': email,
     'password': encrypted_password,  # Password is encrypted using encryptDecrypt module
     'projects': [project1_ID, project2_ID, ...]
@@ -17,7 +16,7 @@ User = {
 '''
 
 # Function to add a new user
-def addUser(client, username, email, userId, password):
+def addUser(client, username, email, password):
     # Add a new user to the database
     db = db_utils.get_database(client)
     users_collection = db['users']
@@ -32,11 +31,6 @@ def addUser(client, username, email, userId, password):
     if existing_email:
         return {'success': False, 'message': 'Email already registered'}
     
-    # Check if userId already exists
-    existing_userId = users_collection.find_one({'userId': userId})
-    if existing_userId:
-        return {'success': False, 'message': 'User ID already exists'}
-    
     # Encrypt the password before storing
     try:
         encrypted_password = encrypt_password(password)
@@ -46,7 +40,6 @@ def addUser(client, username, email, userId, password):
     # Create new user with encrypted password
     user = {
         'username': username,
-        'userId': userId,
         'email': email,
         'password': encrypted_password,  # Store encrypted password
         'projects': []
@@ -76,20 +69,19 @@ def login(client, username, password=None):
         return {'success': True, 'message': 'Login successful', 'user_data': {
             'username': user['username'],
             'email': user.get('email', ''),
-            'userId': user['userId'],
             'projects': user['projects']
         }}
     else:
         return {'success': False, 'message': 'Invalid password'}
 
 # Function to add a user to a project
-def joinProject(client, userId, projectId):
+def joinProject(client, username, projectId):
     # Add a user to a specified project
     db = db_utils.get_database(client)
     users_collection = db['users']
     
     # Check if user exists
-    user = users_collection.find_one({'userId': userId})
+    user = users_collection.find_one({'username': username})
     if not user:
         return {'success': False, 'message': 'User not found'}
     
@@ -99,7 +91,7 @@ def joinProject(client, userId, projectId):
     
     # Add project to user's projects list
     result = users_collection.update_one(
-        {'userId': userId},
+        {'username': username},
         {'$push': {'projects': projectId}}
     )
     
@@ -110,13 +102,13 @@ def joinProject(client, userId, projectId):
 
 
 # function to leave a project 
-def leaveProject(client, userId, projectId):
+def leaveProject(client, username, projectId):
     # Remove a project from a user's project list
     db = db_utils.get_database(client)
     users_collection = db['users']
 
     result = users_collection.update_one(
-        {'userId': userId},
+        {'username': username},
         {'$pull': {'projects': projectId}}
     )
 
@@ -128,12 +120,12 @@ def leaveProject(client, userId, projectId):
 
 # Function to get the list of projects for a user
 # Fixing project naming the names weren't correctly being displayed on the front end
-def getUserProjectsList(client, userId):
+def getUserProjectsList(client, username):
     db = db_utils.get_database(client)
     users = db['users']
     projects = db['projects']
 
-    user = users.find_one({'userId': userId})
+    user = users.find_one({'username': username})
     if not user:
         return {'success': False, 'message': 'User not found'}
 

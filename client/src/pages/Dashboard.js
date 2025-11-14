@@ -48,7 +48,7 @@ function Dashboard() {
                 <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                     {user ? (
                         <>
-                            <span style={{ fontSize: '14px', color: '#bbb' }}>Welcome, <strong>{user.username}</strong></span>
+                            <span style={{ fontSize: '14px', color: '#bbb' }}>Hello, <strong>{user.username}</strong></span>
                             <button
                                 onClick={() => navigate('/portal')}
                                 style={commonStyles.primaryButtonSmall}

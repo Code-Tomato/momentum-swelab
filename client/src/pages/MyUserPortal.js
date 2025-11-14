@@ -6,7 +6,7 @@ const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 function MyUserPortal() {
   const navigate = useNavigate();
-  const userId = sessionStorage.getItem('userId');
+  const username = sessionStorage.getItem('username');
 
   const [projects, setProjects] = useState([]);
   const [globalHW, setGlobalHW] = useState({ HWSet1: { capacity: 0, available: 0 }, HWSet2: { capacity: 0, available: 0 } });
@@ -25,7 +25,7 @@ function MyUserPortal() {
       const res = await fetch(`${API_BASE}/get_user_projects_list`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ username }),
       });
       const data = await res.json();
       
@@ -48,7 +48,7 @@ function MyUserPortal() {
     } finally {
       setLoading(prev => ({ ...prev, projects: false }));
     }
-  }, [userId]);
+  }, [username]);
 
   async function fetchHardware() {
     setLoading(prev => ({ ...prev, hardware: true }));
@@ -71,7 +71,7 @@ function MyUserPortal() {
   }
 
   useEffect(() => {
-    if (!userId) return;
+    if (!username) return;
     fetchProjects();
     fetchHardware();
     
@@ -89,7 +89,7 @@ function MyUserPortal() {
       clearInterval(hardwareInterval);
       clearInterval(projectsInterval);
     };
-  }, [userId, fetchProjects]);
+  }, [username, fetchProjects]);
   
   // Update checkout/checkin forms when hardware sets change (dynamic hardware support)
   useEffect(() => {
@@ -136,7 +136,7 @@ function MyUserPortal() {
         const joinRes = await fetch(`${API_BASE}/join_project`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId, projectId }),
+          body: JSON.stringify({ username, projectId }),
         });
         const joinData = await joinRes.json();
         if (joinData.success) {
@@ -168,7 +168,7 @@ function MyUserPortal() {
       const res = await fetch(`${API_BASE}/join_project`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, projectId: joinProjectId.trim() }),
+        body: JSON.stringify({ username, projectId: joinProjectId.trim() }),
       });
       const data = await res.json();
       if (data.success) {
@@ -191,7 +191,7 @@ function MyUserPortal() {
     const res = await fetch(`${API_BASE}/remove_user_from_project`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, projectId }),
+      body: JSON.stringify({ username, projectId }),
     });
     const data = await res.json();
     if (data.success) {
@@ -234,7 +234,7 @@ function MyUserPortal() {
           const res = await fetch(`${API_BASE}/${endpoint}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ projectId: selectedProjectId, hwSetName: hwName, qty: quantity, userId }),
+            body: JSON.stringify({ projectId: selectedProjectId, hwSetName: hwName, qty: quantity, username }),
           });
           const data = await res.json();
           results.push({ hw: hwName, success: data.success, message: data.message });
@@ -270,11 +270,12 @@ function MyUserPortal() {
   }
 
   function logout() {
-    sessionStorage.removeItem('userId');
+    sessionStorage.removeItem('username');
+    sessionStorage.removeItem('user');
     navigate('/login');
   }
 
-  if (!userId) return <Navigate to="/login" replace />;
+  if (!username) return <Navigate to="/login" replace />;
 
   return (
     <div style={commonStyles.pageContainer}>
@@ -282,7 +283,7 @@ function MyUserPortal() {
       <div style={commonStyles.header}>
         <h1 style={commonStyles.headerTitle}>Portal</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <span style={{ fontSize: '14px', color: '#bbb' }}>Signed in as <strong>{userId}</strong></span>
+          <span style={{ fontSize: '14px', color: '#bbb' }}>Signed in as <strong>{username}</strong></span>
           <button
             onClick={logout}
             style={commonStyles.dangerButton}
