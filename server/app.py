@@ -1,5 +1,6 @@
 # Import necessary libraries and modules
 import os
+import json
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
@@ -560,22 +561,31 @@ def send_reset_email(email, token):
 def forgot_password(client):
     data = request.get_json()
     email = data.get('email')
+    username = data.get('username')
 
     # Validate required fields
     if not email:
         return jsonify({'success': False, 'message': 'Email is required'})
+    
+    if not username:
+        return jsonify({'success': False, 'message': 'Username is required'})
 
     # Basic email format validation
     if '@' not in email or '.' not in email.split('@')[1]:
         return jsonify({'success': False, 'message': 'Invalid email format'})
 
     # Check if email exists in DB
-    user = usersDatabase.getUserByEmail(client, email)
-    if not user:
-        return jsonify({'success': True, 'message': 'If the email exists, a reset link has been sent.'})
+    user_by_email = usersDatabase.getUserByEmail(client, email)
+    if not user_by_email:
+        return jsonify({'success': True, 'message': 'If the email and username match, a reset link has been sent.'})
 
-    # Create token
-    token = serializer.dumps(email)
+    # Verify that the username matches the user found by email
+    if user_by_email.get('username') != username:
+        return jsonify({'success': True, 'message': 'If the email and username match, a reset link has been sent.'})
+
+    # Create token with both email and username (as JSON string)
+    token_data = {'email': email, 'username': username}
+    token = serializer.dumps(json.dumps(token_data))
 
     # Send email
     try:
@@ -591,19 +601,38 @@ def forgot_password(client):
 def reset_password(client):
     data = request.get_json()
     token = data.get('token')
+    username = data.get('username')
     new_password = data.get('password')
 
     # Validate required fields
     if not token:
         return jsonify({'success': False, 'message': 'Token is required'})
     
+    if not username:
+        return jsonify({'success': False, 'message': 'Username is required'})
+    
     if not new_password:
         return jsonify({'success': False, 'message': 'Password is required'})
 
     try:
-        email = serializer.loads(token, max_age=1800)  # token expires in 30 minutes
+        token_data_str = serializer.loads(token, max_age=1800)  # token expires in 30 minutes
+        token_data = json.loads(token_data_str)
+        email = token_data.get('email')
+        token_username = token_data.get('username')
     except Exception:
         return jsonify({'success': False, 'message': 'Invalid or expired token'})
+
+    # Verify username matches the token
+    if token_username != username:
+        return jsonify({'success': False, 'message': 'Username does not match reset token'})
+
+    # Verify user exists and username matches
+    user = usersDatabase.getUserByEmail(client, email)
+    if not user:
+        return jsonify({'success': False, 'message': 'User not found'})
+    
+    if user.get('username') != username:
+        return jsonify({'success': False, 'message': 'Username does not match account'})
 
     # Update password in DB
     result = usersDatabase.updatePassword(client, email, new_password)

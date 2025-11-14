@@ -7,6 +7,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 function ResetPasswordPage() {
   const { token } = useParams();
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
@@ -30,6 +31,11 @@ function ResetPasswordPage() {
     e.preventDefault();
     setMessage('');
     setError('');
+    
+    if (!username.trim()) {
+      setError('Username is required');
+      return;
+    }
     
     if (!password.trim()) {
       setError('Password is required');
@@ -57,6 +63,7 @@ function ResetPasswordPage() {
     try {
       const response = await axios.post(`${API_BASE_URL}/reset-password`, {
         token: token,
+        username: username,
         password: password
       });
       
@@ -115,6 +122,26 @@ function ResetPasswordPage() {
         </div>
 
         <form onSubmit={handleSubmit} style={commonStyles.form}>
+          <div style={commonStyles.formGroup}>
+            <label style={commonStyles.label} htmlFor="reset-username">Username</label>
+            <input
+              id="reset-username"
+              type="text"
+              placeholder="Enter your username"
+              value={username}
+              onChange={e => {
+                setUsername(e.target.value);
+                setError('');
+              }}
+              required
+              style={{ ...commonStyles.input, borderColor: error ? '#ff6b6b' : '#333' }}
+              onFocus={inputHandlers.onFocus}
+              onBlur={inputHandlers.onBlur}
+              aria-label="Username"
+              aria-invalid={!!error}
+            />
+          </div>
+
           <div style={commonStyles.formGroup}>
             <label style={commonStyles.label} htmlFor="new-password">New Password</label>
             <input

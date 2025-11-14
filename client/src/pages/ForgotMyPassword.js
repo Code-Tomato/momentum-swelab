@@ -7,6 +7,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -25,13 +26,18 @@ function ForgotPasswordPage() {
       return;
     }
     
+    if (!username.trim()) {
+      setError('Username is required');
+      return;
+    }
+    
     if (!validateEmail(email)) {
       setError('Please enter a valid email address');
       return;
     }
     
     try {
-      const response = await axios.post(`${API_BASE_URL}/forgot-password`, { email });
+      const response = await axios.post(`${API_BASE_URL}/forgot-password`, { email, username });
       setMessage(response.data.message || 'Password reset instructions sent to your email.');
     } catch (err) {
       setMessage(err.response?.data?.message || 'Server error. Please try again later.');
@@ -43,7 +49,7 @@ function ForgotPasswordPage() {
       <div style={commonStyles.card}>
         <div>
           <h2 style={commonStyles.heading}>Reset Password</h2>
-          <p style={commonStyles.subheading}>Enter your email to receive reset instructions</p>
+          <p style={commonStyles.subheading}>Enter your email and username to receive reset instructions</p>
         </div>
 
         <form onSubmit={handleSubmit} style={commonStyles.form}>
@@ -63,6 +69,26 @@ function ForgotPasswordPage() {
               onFocus={inputHandlers.onFocus}
               onBlur={inputHandlers.onBlur}
               aria-label="Email address"
+              aria-invalid={!!error}
+            />
+          </div>
+
+          <div style={commonStyles.formGroup}>
+            <label style={commonStyles.label} htmlFor="reset-username">Username</label>
+            <input
+              id="reset-username"
+              type="text"
+              placeholder="Enter your username"
+              value={username}
+              onChange={e => {
+                setUsername(e.target.value);
+                setError('');
+              }}
+              required
+              style={{ ...commonStyles.input, borderColor: error ? '#ff6b6b' : '#333' }}
+              onFocus={inputHandlers.onFocus}
+              onBlur={inputHandlers.onBlur}
+              aria-label="Username"
               aria-invalid={!!error}
             />
             {error && <div style={{ fontSize: '12px', color: '#ff6b6b', marginTop: '4px' }}>{error}</div>}
