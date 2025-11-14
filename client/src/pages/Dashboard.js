@@ -39,180 +39,204 @@ function Dashboard() {
     };
     
     return (
-        <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
-            {/* Navbar */}
+        <div style={{ minHeight: '100vh', backgroundColor: '#0a0a0a', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
             <nav style={{
-                backgroundColor: '#282c34',
-                color: 'white',
-                padding: '15px 30px',
+                backgroundColor: '#1a1a1a',
+                color: '#fff',
+                padding: '16px 32px',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                borderBottom: '1px solid #333'
             }}>
-                <h2 style={{ margin: 0 }}>Momentum SWELAB - Hardware Management</h2>
-                <div style={{ display: 'flex', gap: '15px' }}></div>
-                {user ? (
-                    <>
-                        <span style={{ alignSelf: 'center' }}>Welcome, {user.username}</span>
-                        <button
-                            onClick={() => navigate('/portal')}
-                            style={{
-                                padding: '8px 20px',
-                                backgroundColor: '#17a2b8',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                            }}
-                        >
-                            User Portal
-                        </button>
-                    </>
-                ) : (
-                    <>
-                        <button
-                            onClick={() => navigate('/login')}
-                            style={{
-                                padding: '8px 20px',
-                                backgroundColor: '#007bff',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                            }}
-                        >
-                            Login
-                        </button>
+                <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>Momentum SWELAB</h2>
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                    {user ? (
+                        <>
+                            <span style={{ fontSize: '14px', color: '#bbb' }}>Welcome, <strong>{user.username}</strong></span>
+                            <button
+                                onClick={() => navigate('/portal')}
+                                style={{
+                                    padding: '8px 16px',
+                                    backgroundColor: '#00d9ff',
+                                    color: '#0a0a0a',
+                                    border: 'none',
+                                    fontSize: '13px',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    transition: 'background-color 0.2s'
+                                }}
+                                onMouseEnter={(e) => e.target.style.backgroundColor = '#00c4e0'}
+                                onMouseLeave={(e) => e.target.style.backgroundColor = '#00d9ff'}
+                            >
+                                Portal
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <button
+                                onClick={() => navigate('/login')}
+                                style={{
+                                    padding: '8px 16px',
+                                    backgroundColor: 'transparent',
+                                    color: '#00d9ff',
+                                    border: '1px solid #00d9ff',
+                                    fontSize: '13px',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.target.style.backgroundColor = '#00d9ff';
+                                    e.target.style.color = '#0a0a0a';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.backgroundColor = 'transparent';
+                                    e.target.style.color = '#00d9ff';
+                                }}
+                            >
+                                Login
+                            </button>
+                            <button
+                                onClick={() => navigate('/register')}
+                                style={{
+                                    padding: '8px 16px',
+                                    backgroundColor: 'transparent',
+                                    color: '#888',
+                                    border: '1px solid #333',
+                                    fontSize: '13px',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.target.style.borderColor = '#00d9ff';
+                                    e.target.style.color = '#00d9ff';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.borderColor = '#333';
+                                    e.target.style.color = '#888';
+                                }}
+                            >
+                                Register
+                            </button>
+                        </>
+                    )}
+                </div>
+            </nav>
+
+            <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 32px' }}>
+                {/* Hero Section */}
+                <div style={{
+                    backgroundColor: '#1a1a1a',
+                    padding: '48px 32px',
+                    border: '1px solid #333',
+                    marginBottom: '32px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '16px'
+                }}>
+                    <div>
+                        <h1 style={{ margin: 0, fontSize: '32px', fontWeight: 600, color: '#fff' }}>Welcome to Momentum SWELAB</h1>
+                        <p style={{ margin: '8px 0 0 0', fontSize: '16px', color: '#888' }}>Manage and track hardware resources for collaborative projects</p>
+                    </div>
+                    {!user && (
                         <button
                             onClick={() => navigate('/register')}
                             style={{
-                                padding: '8px 20px',
-                                backgroundColor: '#28a745',
-                                color: 'white',
+                                marginTop: '16px',
+                                padding: '12px 24px',
+                                backgroundColor: '#00d9ff',
+                                color: '#0a0a0a',
                                 border: 'none',
-                                borderRadius: '4px',
+                                fontSize: '14px',
+                                fontWeight: 600,
                                 cursor: 'pointer',
+                                width: 'fit-content',
+                                transition: 'background-color 0.2s'
                             }}
+                            onMouseEnter={(e) => e.target.style.backgroundColor = '#00c4e0'}
+                            onMouseLeave={(e) => e.target.style.backgroundColor = '#00d9ff'}
                         >
-                            Register
+                            Get Started
                         </button>
-                    </>
-                )}
-            </nav>
-
-            {/* Main Content */}
-            <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 20px' }}>
-                {/* Hero Section */}
-                <div style={{
-                backgroundColor: 'white',
-                padding: '40px',
-                borderRadius: '8px',
-                marginBottom: '30px',
-                textAlign: 'center',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                }}>
-                <h1 style={{ marginTop: 0, color: '#282c34' }}>Welcome to Momentum SWELAB</h1>
-                <p style={{ fontSize: '18px', color: '#666' }}>Manage and track hardware resources for collaborative projects
-                </p>
-                {!user && (
-                    <button
-                    onClick={() => navigate('/register')}
-                    style={{
-                        marginTop: '20px',
-                        padding: '12px 30px',
-                        backgroundColor: '#28a745',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '16px'
-                    }}
-                    >
-                    Get Started
-                    </button>
-                )}
+                    )}
                 </div>
 
-                {/* Server Status */}
+                {/* System Status */}
                 <div style={{
-                backgroundColor: 'white',
-                padding: '20px',
-                borderRadius: '8px',
-                marginBottom: '30px',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    backgroundColor: '#1a1a1a',
+                    padding: '24px 32px',
+                    border: '1px solid #333',
+                    marginBottom: '32px'
                 }}>
-                <h3 style={{ marginTop: 0 }}>System Status</h3>
-                {health ? (
-                    <div style={{ display: 'flex', gap: '30px' }}>
-                    <div>
-                        <strong>Server:</strong>{' '}
-                        <span style={{ color: health.status === 'healthy' ? 'green' : 'red' }}>
-                        {health.status === 'healthy' ? 'Online' : 'Offline'}
-                        </span>
-                    </div>
-                    <div>
-                        <strong>Database:</strong>{' '}
-                        <span style={{ color: health.mongodb_connected ? 'green' : 'red' }}>
-                        {health.mongodb_connected ? 'Connected' : 'Disconnected'}
-                        </span>
-                    </div>
-                    </div>
-                ) : (
-                    <p>Checking system status...</p>
-                )}
+                    <h3 style={{ margin: '0 0 24px 0', fontSize: '16px', fontWeight: 600, color: '#fff' }}>System Status</h3>
+                    {health ? (
+                        <div style={{ display: 'flex', gap: '48px' }}>
+                            <div>
+                                <div style={{ fontSize: '13px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Server</div>
+                                <div style={{ color: health.status === 'healthy' ? '#6bff6b' : '#ff6b6b', fontSize: '14px', fontWeight: 500 }}>
+                                    {'●'} {health.status === 'healthy' ? 'Online' : 'Offline'}
+                                </div>
+                            </div>
+                            <div>
+                                <div style={{ fontSize: '13px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Database</div>
+                                <div style={{ color: health.mongodb_connected ? '#6bff6b' : '#ff6b6b', fontSize: '14px', fontWeight: 500 }}>
+                                    {'●'} {health.mongodb_connected ? 'Connected' : 'Disconnected'}
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <p style={{ margin: 0, color: '#888', fontSize: '14px' }}>Checking system status...</p>
+                    )}
                 </div>
 
                 {/* Available Hardware */}
-                <div style={{
-                    backgroundColor: 'white',
-                    padding: '20px',
-                    borderRadius: '8px',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                }}>
-                <h3 style={{ marginTop: 0 }}>Available Hardware</h3>
-                {hardwareSets.length > 0 ? (
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-                        gap: '20px',
-                        marginTop: '20px'
-                    }}>
-                    {hardwareSets.map((hw, index) => (
-                        <div
-                        key={index}
-                        style={{
-                            padding: '20px',
-                            border: '1px solid #ddd',
-                            borderRadius: '8px',
-                            backgroundColor: '#f9f9f9'
-                        }}
-                        >
-                        <h4 style={{ marginTop: 0, color: '#282c34' }}>{hw.hwSetName}</h4>
-                        <div style={{ marginTop: '10px' }}>
-                            <p style={{ margin: '5px 0' }}>
-                            <strong>Total Capacity:</strong> {hw.capacity}
-                            </p>
-                            <p style={{ margin: '5px 0' }}>
-                            <strong>Available:</strong>{' '}
-                            <span style={{
-                                color: hw.availability > 0 ? 'green' : 'red',
-                                fontWeight: 'bold'
-                            }}>
-                                {hw.availability}
-                            </span>
-                            </p>
+                <div>
+                    <h3 style={{ margin: '0 0 24px 0', fontSize: '16px', fontWeight: 600, color: '#fff' }}>Available Hardware</h3>
+                    {hardwareSets.length > 0 ? (
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                            gap: '20px'
+                        }}>
+                            {hardwareSets.map((hw, index) => (
+                                <div
+                                    key={index}
+                                    style={{
+                                        padding: '24px',
+                                        backgroundColor: '#1a1a1a',
+                                        border: '1px solid #333',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '16px'
+                                    }}
+                                >
+                                    <h4 style={{ margin: 0, color: '#fff', fontSize: '16px', fontWeight: 600 }}>{hw.hwSetName}</h4>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                            <span style={{ color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Capacity</span>
+                                            <span style={{ color: '#fff', fontWeight: 500 }}>{hw.capacity}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                            <span style={{ color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Available</span>
+                                            <span style={{ color: hw.availability > 0 ? '#6bff6b' : '#ff6b6b', fontWeight: 600 }}>
+                                                {hw.availability}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
+                    ) : (
+                        <div style={{ backgroundColor: '#1a1a1a', padding: '24px', border: '1px solid #333', color: '#888', fontSize: '14px' }}>
+                            No hardware sets available at the moment.
                         </div>
-                    ))}
-                    </div>
-                ) : (
-                    <p style={{ color: '#666' }}>No hardware sets available at the moment.</p>
-                )}
+                    )}
+                </div>
             </div>
         </div>
-    </div>
-  );
+    );
 }
 
 export default Dashboard;
