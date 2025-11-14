@@ -245,14 +245,38 @@ def deleteProject(client, projectId, username):
     # Check in any checked-out hardware before deleting
     import hardwareDatabase
     hw_sets = project.get('hwSets', {})
+    checkin_errors = []
+    total_checked_in = {}
+    
     for hw_set_name, checked_out_qty in hw_sets.items():
-        if checked_out_qty > 0:
+        # Convert to int in case it's stored as string or float
+        try:
+            qty = int(checked_out_qty) if checked_out_qty else 0
+        except (ValueError, TypeError):
+            qty = 0
+        
+        if qty > 0:
             # Check in the hardware
-            hw_query = hardwareDatabase.queryHardwareSet(client, hw_set_name)
-            if hw_query['success']:
-                current_availability = hw_query['data']['availability']
-                new_availability = current_availability + checked_out_qty
-                hardwareDatabase.updateAvailability(client, hw_set_name, new_availability)
+            try:
+                hw_query = hardwareDatabase.queryHardwareSet(client, hw_set_name)
+                if hw_query['success']:
+                    current_availability = hw_query['data']['availability']
+                    new_availability = current_availability + qty
+                    update_result = hardwareDatabase.updateAvailability(client, hw_set_name, new_availability)
+                    if update_result['success']:
+                        total_checked_in[hw_set_name] = qty
+                    else:
+                        checkin_errors.append(f"Failed to check in {qty} units of {hw_set_name}: {update_result.get('message', 'Unknown error')}")
+                else:
+                    checkin_errors.append(f"Hardware set {hw_set_name} not found")
+            except Exception as e:
+                checkin_errors.append(f"Error checking in {hw_set_name}: {str(e)}")
+    
+    # Log errors but continue with deletion
+    if checkin_errors:
+        print(f"Warning: Errors checking in hardware for project {projectId}: {', '.join(checkin_errors)}")
+    elif total_checked_in:
+        print(f"Successfully checked in hardware for project {projectId}: {total_checked_in}")
     
     # Delete the project
     result = projects_collection.delete_one({'projectId': projectId})
